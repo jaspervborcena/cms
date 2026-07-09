@@ -38,9 +38,38 @@ describe('CmsService public URL helpers', () => {
       }
     });
 
-    const blog = { id: 'blog-123', name: 'Demo blog' } as any;
+    const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog' } as any;
 
-    expect(service.getPublicSiteUrl(blog)).toBe('https://www.blog-123.cms.tovrika.com');
-    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.blog-123.cms.tovrika.com/hello-world');
+    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.cms.tovrika.com');
+    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.cms.tovrika.com/hello-world');
   });
+
+  it('uses the generated blog id as the slug when no slug is provided', async () => {
+    const blog = await service.createBlog({ name: 'Demo blog' });
+
+    expect(blog.slug).toBeDefined();
+    expect(blog.slug).toContain('local-');
+    expect(blog.slug).toBe(blog.id);
+  });
+
+  it('treats a simple custom domain value as a blog subdomain in production', () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        hostname: 'app.example.com',
+        host: 'app.example.com',
+        origin: 'https://app.example.com',
+        protocol: 'https:',
+        port: '',
+        href: 'https://app.example.com/'
+      }
+    });
+
+    const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog', domain: 'jasperblogtest' } as any;
+
+    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.cms.tovrika.com');
+    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.cms.tovrika.com/hello-world');
+  });
+});
 });

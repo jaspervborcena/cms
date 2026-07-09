@@ -130,11 +130,12 @@ export class CmsService {
       .subscribe((blogs) => this.blogsSignal.set(blogs));
   }
 
-  async createBlog(data: { name: string; description?: string; category?: string; ownerUid?: string | null }): Promise<Blog> {
+  async createBlog(data: { name: string; description?: string; category?: string; ownerUid?: string | null; slug?: string | null }): Promise<Blog> {
     const now = new Date().toISOString();
+    const requestedSlug = (data.slug ?? '').trim();
     const blog: Omit<Blog, 'id'> = {
       name: data.name,
-      slug: this.slugify(data.name),
+      slug: requestedSlug ? this.slugify(requestedSlug) : undefined,
       description: data.description,
       category: data.category,
       ownerUid: data.ownerUid ?? null,
@@ -143,7 +144,8 @@ export class CmsService {
     };
 
     if (!environment.firebase.projectId || !this.firestore) {
-      const localBlog: Blog = { ...blog, id: `local-${Math.random().toString(36).slice(2,9)}` } as Blog;
+      const localBlogId = `local-${Math.random().toString(36).slice(2,9)}`;
+      const localBlog: Blog = { ...blog, id: localBlogId, slug: blog.slug ?? localBlogId } as Blog;
       this.activeBlogSignal.set(localBlog);
       this.persistActiveBlog(localBlog);
       // ensure blogsSignal contains this new blog locally
@@ -154,7 +156,8 @@ export class CmsService {
 
     const blogsCollection = collection(this.firestore, 'blogs');
     const docRef = await addDoc(blogsCollection, blog as any);
-    const newBlog: Blog = { ...(blog as Blog), id: docRef.id };
+    const newBlog: Blog = { ...(blog as Blog), id: docRef.id, slug: blog.slug ?? docRef.id };
+    await setDoc(docRef, { slug: newBlog.slug }, { merge: true });
     this.activeBlogSignal.set(newBlog);
     this.persistActiveBlog(newBlog);
     // update blogsSignal cache
@@ -349,19 +352,29 @@ export class CmsService {
     return `${window.location.protocol}//127.0.0.1${port}${path}`;
   }
 
-  private getProductionBaseUrl(): string {
-    return window.location.origin.replace(/\/$/, '');
-  }
-
   private getBlogPublicHost(blog: Blog): string {
     const slug = (blog.slug || blog.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     return `www.${slug}.cms.tovrika.com`;
   }
 
+  private getPublicHostForBlog(blog: Blog): string {
+    if (!blog.domain) {
+      return this.getBlogPublicHost(blog);
+    }
+
+    const host = blog.domain.trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
+    if (!host) {
+      return this.getBlogPublicHost(blog);
+    }
+
+    const looksLikeFqdn = host.includes('.') || host.includes(':');
+    return looksLikeFqdn ? host : this.getBlogPublicHost(blog);
+  }
+
   getPublicSiteUrl(blog: Blog): string {
     if (blog.domain) {
-      const host = blog.domain.replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
-      const looksLikeFqdn = host.includes('.');
+      const host = this.getPublicHostForBlog(blog);
+      const looksLikeFqdn = host.includes('.') || host.includes(':');
       if (!looksLikeFqdn && this.isLocalDevelopmentHost()) {
         return this.getLocalPreviewUrl(`/site/${blog.id}`);
       }
@@ -377,8 +390,8 @@ export class CmsService {
 
   getPublicPostUrl(blog: Blog, postSlug: string): string {
     if (blog.domain) {
-      const host = blog.domain.replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
-      const looksLikeFqdn = host.includes('.');
+      const host = this.getPublicHostForBlog(blog);
+      const looksLikeFqdn = host.includes('.') || host.includes(':');
       if (!looksLikeFqdn && this.isLocalDevelopmentHost()) {
         return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
       }
