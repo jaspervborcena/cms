@@ -3,6 +3,7 @@ import { Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map, of, switchMap } from 'rxjs';
 import { CmsService } from '../../services/cms.service';
+import { Post } from '../../models/cms.models';
 
 @Component({
   selector: 'app-post-detail',
@@ -32,14 +33,22 @@ export class PostDetailComponent {
 
   readonly post$ = this.route.paramMap.pipe(
     map((params) => ({ blogId: params.get('blogId'), slug: params.get('slug') })),
-    switchMap(({ blogId, slug }) => {
+    switchMap(async ({ blogId, slug }) => {
       this.blogId = blogId;
       if (!blogId || !slug) {
-        return of(null);
+        return null;
       }
 
-      const post = this.service.findPostBySlug(blogId, slug);
-      return of(post ?? null);
+      let post: Post | null | undefined = this.service.findPostBySlug(blogId, slug);
+      if (!post) {
+        post = await this.service.loadPostBySlug(blogId, slug);
+      }
+
+      if (post && (!post.content || post.content.trim() === '')) {
+        return await this.service.loadPostById(blogId, post.id);
+      }
+
+      return post ?? null;
     })
   );
 }
