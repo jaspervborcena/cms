@@ -483,6 +483,31 @@ export class CmsService {
     return undefined;
   }
 
+  findBlogByHostName(hostname: string): Blog | undefined {
+    const normalized = hostname.toLowerCase().trim();
+    const parts = normalized.split('.');
+    if (parts.length < 4) {
+      return undefined;
+    }
+
+    const rootDomain = parts.slice(-3).join('.');
+    if (rootDomain !== 'cms.tovrika.com') {
+      return undefined;
+    }
+
+    const subdomain = parts.slice(0, -3).join('.');
+    if (!subdomain) {
+      return undefined;
+    }
+
+    const slug = subdomain === 'www' ? undefined : subdomain.split('.').pop();
+    if (!slug) {
+      return undefined;
+    }
+
+    return this.findBlogByHostSlug(slug);
+  }
+
   private slugify(text: string): string {
     return text
       .toLowerCase()

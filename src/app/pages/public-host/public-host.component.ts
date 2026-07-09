@@ -42,14 +42,17 @@ export class PublicHostComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     const params = this.route.snapshot.paramMap;
-    const hostSlug = params.get('hostSlug');
+    const routeHostSlug = params.get('hostSlug');
     const slug = params.get('slug');
+    const hostnameBlog = this.cms.findBlogByHostName(window.location.hostname);
+    const hostSlug = routeHostSlug || hostnameBlog?.id;
+
     if (!hostSlug || !slug) {
       this.loaded = true;
       return;
     }
 
-    const blog = this.cms.findBlogByHostSlug(hostSlug);
+    const blog = routeHostSlug ? this.cms.findBlogByHostSlug(hostSlug) : hostnameBlog;
     if (!blog) {
       this.loaded = true;
       return;
@@ -57,17 +60,17 @@ export class PublicHostComponent implements OnInit {
 
     this.blog = blog;
     // find published post by slug
-    const post = this.cms.findPostBySlug(blog.id, slug) ?? null;
+    let post = this.cms.findPostBySlug(blog.id, slug) ?? null;
+    if (!post) {
+      post = await this.cms.loadPostBySlug(blog.id, slug);
+    }
+
     if (post) {
       this.post = post;
       this.loaded = true;
       return;
     }
 
-    // attempt to load from firestore if missing
-    const loaded = await this.cms.loadPostById(blog.id, slug).catch(() => null);
-    // note: loadPostById expects postId; if slug wasn't an id this may return null
-    this.post = loaded;
     this.loaded = true;
   }
 }
