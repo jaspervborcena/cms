@@ -352,57 +352,40 @@ export class CmsService {
     return `${window.location.protocol}//127.0.0.1${port}${path}`;
   }
 
-  private getBlogPublicHost(blog: Blog): string {
-    const slug = (blog.slug || blog.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    return `www.${slug}.cms.tovrika.com`;
+  private getCurrentOrigin(): string {
+    return window.location.origin.replace(/\/$/, '');
   }
 
   private getPublicHostForBlog(blog: Blog): string {
     if (!blog.domain) {
-      return this.getBlogPublicHost(blog);
+      return this.getCurrentOrigin();
     }
 
     const host = blog.domain.trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
     if (!host) {
-      return this.getBlogPublicHost(blog);
+      return this.getCurrentOrigin();
     }
 
     const looksLikeFqdn = host.includes('.') || host.includes(':');
-    return looksLikeFqdn ? host : this.getBlogPublicHost(blog);
+    return looksLikeFqdn ? host : this.getCurrentOrigin();
   }
 
   getPublicSiteUrl(blog: Blog): string {
-    if (blog.domain) {
-      const host = this.getPublicHostForBlog(blog);
-      const looksLikeFqdn = host.includes('.') || host.includes(':');
-      if (!looksLikeFqdn && this.isLocalDevelopmentHost()) {
-        return this.getLocalPreviewUrl(`/site/${blog.id}`);
-      }
-      return `https://${host}`;
-    }
-
     if (this.isLocalDevelopmentHost()) {
       return this.getLocalPreviewUrl(`/site/${blog.id}`);
     }
 
-    return `https://${this.getBlogPublicHost(blog)}`;
+    const host = this.getPublicHostForBlog(blog);
+    return host.startsWith('http') ? `${host}/site/${blog.id}` : `https://${host}/site/${blog.id}`;
   }
 
   getPublicPostUrl(blog: Blog, postSlug: string): string {
-    if (blog.domain) {
-      const host = this.getPublicHostForBlog(blog);
-      const looksLikeFqdn = host.includes('.') || host.includes(':');
-      if (!looksLikeFqdn && this.isLocalDevelopmentHost()) {
-        return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
-      }
-      return `https://${host}/${postSlug}`;
-    }
-
     if (this.isLocalDevelopmentHost()) {
       return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
     }
 
-    return `https://${this.getBlogPublicHost(blog)}/${postSlug}`;
+    const host = this.getPublicHostForBlog(blog);
+    return host.startsWith('http') ? `${host}/site/${blog.id}/${postSlug}` : `https://${host}/site/${blog.id}/${postSlug}`;
   }
 
   getThemeCssUrl(themeId?: string): string {
