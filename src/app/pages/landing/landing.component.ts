@@ -34,7 +34,7 @@ import { AuthService } from '../../services/auth.service';
     </section>
 
     <section id="plans" class="plans" [class.focused]="focusPlans">
-      <h2>💳 Sample CMS Plan</h2>
+      <h2>💳 Plans</h2>
       <div class="plans-grid">
         <article class="plan card">
           <h3>Free Trial</h3>
@@ -78,6 +78,7 @@ import { AuthService } from '../../services/auth.service';
     `.card p { margin: 0.75rem 0 0; color: #4b5563; line-height: 1.7; }`,
     `.featured { background: linear-gradient(180deg, rgba(59,130,246,0.09), white 100%); border-color: #bfdbfe; }`
     ,`.plans { margin-top: 2.5rem; padding: 1.5rem 0; }
+    .plans.focused { max-width:900px; margin:2.5rem auto; padding:2rem; background:white; border-radius:12px; box-shadow:0 20px 50px rgba(15,23,42,0.08); }
     .plans-grid { display:grid; gap:1rem; grid-template-columns:1fr 1fr; }
     .plan ul { margin:0.75rem 0 0; padding-left:1.25rem; color:#374151; }
     .plan h3 { margin:0 0 0.35rem 0; }

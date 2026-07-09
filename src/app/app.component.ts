@@ -17,7 +17,9 @@ export class AppComponent {
   readonly router = inject(Router);
 
   private get currentUrl(): string {
-    return this.router.url;
+    // ignore fragment and query params when computing layout decisions
+    const raw = this.router.url || '';
+    return raw.split('?')[0].split('#')[0];
   }
 
   get isPreviewRoute(): boolean {
