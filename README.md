@@ -120,6 +120,16 @@ ng e2e
 - Harden Firestore security rules for per-user blog ownership
 - Improve editor styling to more closely match the admin screenshot
 
+## Production Subdomain Routing
+
+- Supports wildcard subdomain hosting for `cms.tovrika.com` in production.
+- Uses hostname parsing so `www.slug.cms.tovrika.com/test` can resolve the correct blog and post.
+- Local development still uses path-based routes, while production can use custom subdomains.
+- Requires Firebase Hosting configured for `cms.tovrika.com` with wildcard SSL and a rewrite for `index.html`.
+- Example routes:
+  - `cms.tovrika.com/local-it741aj/test`
+  - `www.local-it741aj.cms.tovrika.com/test`
+
 ## Summary
 
 This README reflects the current state of the `Tovrika CMS` starter app and the latest editor enhancements. It is ready to be expanded as more production-ready CMS features are added.
