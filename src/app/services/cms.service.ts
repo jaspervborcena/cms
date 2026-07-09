@@ -339,35 +339,57 @@ export class CmsService {
       .replace(/(^-|-$)/g, '');
   }
 
+  private isLocalDevelopmentHost(): boolean {
+    const hostname = window.location.hostname.toLowerCase();
+    return ['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'].includes(hostname);
+  }
+
+  private getLocalPreviewUrl(path: string): string {
+    const port = window.location.port ? `:${window.location.port}` : '';
+    return `${window.location.protocol}//127.0.0.1${port}${path}`;
+  }
+
+  private getProductionBaseUrl(): string {
+    return window.location.origin.replace(/\/$/, '');
+  }
+
+  private getBlogPublicHost(blog: Blog): string {
+    const slug = (blog.slug || blog.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    return `www.${slug}.cms.tovrika.com`;
+  }
+
   getPublicSiteUrl(blog: Blog): string {
     if (blog.domain) {
-      const host = blog.domain.replace(/^(https?:\/\/)?/, '');
-      // If domain doesn't look like a FQDN (no dot) and we're in dev, use local IP/port
+      const host = blog.domain.replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
       const looksLikeFqdn = host.includes('.');
-      if (!looksLikeFqdn && !environment.production) {
-        const port = window.location.port ? `:${window.location.port}` : '';
-        return `${window.location.protocol}//127.0.0.1${port}/site/${blog.id}`;
+      if (!looksLikeFqdn && this.isLocalDevelopmentHost()) {
+        return this.getLocalPreviewUrl(`/site/${blog.id}`);
       }
       return `https://${host}`;
     }
 
-    const generatedHost = `www.site-${blog.id}.cms.tovrika.com`;
-    return environment.production ? `https://${generatedHost}` : `${window.location.origin}/site/${blog.id}`;
+    if (this.isLocalDevelopmentHost()) {
+      return this.getLocalPreviewUrl(`/site/${blog.id}`);
+    }
+
+    return `https://${this.getBlogPublicHost(blog)}`;
   }
 
   getPublicPostUrl(blog: Blog, postSlug: string): string {
     if (blog.domain) {
-      const host = blog.domain.replace(/^(https?:\/\/)?/, '');
+      const host = blog.domain.replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
       const looksLikeFqdn = host.includes('.');
-      if (!looksLikeFqdn && !environment.production) {
-        const port = window.location.port ? `:${window.location.port}` : '';
-        return `${window.location.protocol}//127.0.0.1${port}/site/${blog.id}/${postSlug}`;
+      if (!looksLikeFqdn && this.isLocalDevelopmentHost()) {
+        return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
       }
       return `https://${host}/${postSlug}`;
     }
 
-    const generatedHost = `www.site-${blog.id}.cms.tovrika.com`;
-    return environment.production ? `https://${generatedHost}/${postSlug}` : `${window.location.origin}/site/${blog.id}/${postSlug}`;
+    if (this.isLocalDevelopmentHost()) {
+      return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
+    }
+
+    return `https://${this.getBlogPublicHost(blog)}/${postSlug}`;
   }
 
   getThemeCssUrl(themeId?: string): string {
