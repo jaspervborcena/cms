@@ -1,13 +1,14 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { RouterLink, ActivatedRoute } from '@angular/router';
+import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [RouterLink],
+  imports: [CommonModule, RouterLink],
   template: `
-    <section class="hero">
+    <section *ngIf="!focusPlans" class="hero">
       <p class="eyebrow">Tovrika CMS</p>
       <h1>Build your app with a polished editorial experience.</h1>
       <p class="lead">Launch a public marketing site, then switch to a protected dashboard for posts, pages, and workflow tools.</p>
@@ -17,7 +18,7 @@ import { AuthService } from '../../services/auth.service';
       </div>
     </section>
 
-    <section class="grid">
+    <section *ngIf="!focusPlans" class="grid">
       <article class="card featured">
         <h2>Create an account</h2>
         <p>Unlock the full potential of Tovrika CMS by registering today. Once you sign up, you gain access to a protected dashboard where you can manage posts, pages, and workflows with ease. Our editorial tools are designed to help you draft, review, and publish content seamlessly, while keeping everything organized in one place. Registration is the gateway to building a professional online presence that grows with your brand.</p>
@@ -32,7 +33,7 @@ import { AuthService } from '../../services/auth.service';
       </article>
     </section>
 
-    <section id="plans" class="plans">
+    <section id="plans" class="plans" [class.focused]="focusPlans">
       <h2>💳 Sample CMS Plan</h2>
       <div class="plans-grid">
         <article class="plan card">
@@ -86,4 +87,20 @@ import { AuthService } from '../../services/auth.service';
 })
 export class LandingComponent {
   readonly auth = inject(AuthService);
+  private route = inject(ActivatedRoute);
+  focusPlans = false;
+
+  constructor() {
+    this.route.fragment.subscribe((f) => {
+      this.focusPlans = f === 'plans';
+      if (this.focusPlans) {
+        // scroll plans into view when focused
+        setTimeout(() => {
+          const el = document.getElementById('plans');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+      }
+    });
+  }
 }
+
