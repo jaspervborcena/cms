@@ -24,6 +24,7 @@ export interface Page {
 export interface Blog {
   id: string;
   name: string;
+  slug?: string;
   description?: string;
   category?: string;
   ownerUid?: string | null;

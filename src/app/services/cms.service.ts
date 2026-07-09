@@ -72,6 +72,7 @@ export class CmsService {
   readonly activeBlogSignal = signal<Blog | null>(this.readStoredActiveBlog());
   readonly draftSignal = signal<Post | null>(null);
   readonly previewSignal = signal<Post | null>(null);
+  private readonly localPostsKey = 'cms-local-posts';
   readonly filteredPostsSignal = computed(() => {
     const blog = this.activeBlogSignal();
     if (!blog) return [] as Post[];
@@ -99,7 +100,14 @@ export class CmsService {
   private loadBlogs(): void {
     if (!environment.firebase.projectId || !this.firestore) {
       const existing = this.activeBlogSignal();
-      this.blogsSignal.set(existing ? [existing] : []);
+      // ensure slug exists for local blog
+      if (existing && !existing.slug) {
+        const withSlug = { ...existing, slug: this.slugify(existing.name) };
+        this.activeBlogSignal.set(withSlug);
+        this.blogsSignal.set([withSlug]);
+      } else {
+        this.blogsSignal.set(existing ? [existing] : []);
+      }
       return;
     }
 
@@ -109,6 +117,7 @@ export class CmsService {
         map((items: Array<Record<string, unknown>>) => items.map((item) => ({
           id: String(item['id'] ?? ''),
           name: String(item['name'] ?? 'Untitled blog'),
+          slug: item['slug'] ? String(item['slug']) : this.slugify(String(item['name'] ?? '')),
           description: String(item['description'] ?? ''),
           category: String(item['category'] ?? ''),
           ownerUid: item['ownerUid'] ? String(item['ownerUid']) : null,
@@ -125,6 +134,7 @@ export class CmsService {
     const now = new Date().toISOString();
     const blog: Omit<Blog, 'id'> = {
       name: data.name,
+      slug: this.slugify(data.name),
       description: data.description,
       category: data.category,
       ownerUid: data.ownerUid ?? null,
@@ -175,6 +185,7 @@ export class CmsService {
       const blog: Blog = {
         id: snapshot.id,
         name: String(data['name'] ?? 'Untitled blog'),
+        slug: data['slug'] ? String(data['slug']) : this.slugify(String(data['name'] ?? '')),
         description: data['description'] ? String(data['description']) : undefined,
         category: data['category'] ? String(data['category']) : undefined,
         ownerUid: data['ownerUid'] ? String(data['ownerUid']) : null,
@@ -194,7 +205,8 @@ export class CmsService {
   private async loadPostsForBlog(blogId: string): Promise<void> {
     if (!this.firestore) {
       // local mode: filter existing posts by blogId
-      this.postsSignal.set(this.postsSignal().filter((p) => p.blogId === blogId));
+      const localPosts = this.readLocalPosts();
+      this.postsSignal.set(localPosts.filter((p) => p.blogId === blogId));
       return;
     }
 
@@ -225,7 +237,9 @@ export class CmsService {
 
     if (!environment.firebase.projectId || !this.firestore) {
       const localPost: Post = { ...(post as Post), id: `local-post-${Math.random().toString(36).slice(2,9)}` };
-      this.postsSignal.set([localPost, ...this.postsSignal()]);
+      const updatedPosts = [localPost, ...this.postsSignal()];
+      this.postsSignal.set(updatedPosts);
+      this.saveLocalPosts(updatedPosts);
       return localPost;
     }
 
@@ -249,7 +263,9 @@ export class CmsService {
     };
 
     if (!environment.firebase.projectId || !this.firestore) {
-      this.postsSignal.set(this.postsSignal().map((item) => (item.id === postId ? updated : item)));
+      const updatedPosts = this.postsSignal().map((item) => (item.id === postId ? updated : item));
+      this.postsSignal.set(updatedPosts);
+      this.saveLocalPosts(updatedPosts);
       return updated;
     }
 
@@ -270,7 +286,14 @@ export class CmsService {
       return existing;
     }
 
-    if (!this.firestore) return null;
+    if (!this.firestore) {
+      const localPosts = this.readLocalPosts();
+      const fallback = localPosts.find((item) => item.id === postId && item.blogId === blogId) ?? null;
+      if (fallback) {
+        this.previewSignal.set(fallback);
+      }
+      return fallback;
+    }
     const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
     const snapshot = await getDoc(postDoc);
     if (!snapshot.exists()) return null;
@@ -282,6 +305,88 @@ export class CmsService {
 
   getPostById(blogId: string, postId: string): Post | undefined {
     return this.postsSignal().find((item) => item.id === postId && item.blogId === blogId);
+  }
+
+  findPostBySlug(blogId: string, slug: string): Post | undefined {
+    return this.postsSignal().find((item) => item.blogId === blogId && item.slug === slug);
+  }
+
+  findBlogByHostSlug(hostSlug: string): Blog | undefined {
+    const normalized = hostSlug.toLowerCase();
+    // match domain exactly
+    const byDomain = this.blogsSignal().find((b) => b.domain && b.domain.replace(/^(https?:\/\/)?/, '').toLowerCase() === normalized);
+    if (byDomain) return byDomain;
+
+    // match id directly
+    const byId = this.blogsSignal().find((b) => b.id === hostSlug || b.id.toLowerCase() === normalized);
+    if (byId) return byId;
+
+    // match explicit slug
+    const bySlug = this.blogsSignal().find((b) => (b.slug ? b.slug.toLowerCase() === normalized : false));
+    if (bySlug) return bySlug;
+
+    // match slugified name as fallback
+    const byName = this.blogsSignal().find((b) => this.slugify(b.name || '') === normalized);
+    if (byName) return byName;
+
+    return undefined;
+  }
+
+  private slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+
+  getPublicSiteUrl(blog: Blog): string {
+    if (blog.domain) {
+      const host = blog.domain.replace(/^(https?:\/\/)?/, '');
+      // If domain doesn't look like a FQDN (no dot) and we're in dev, use local IP/port
+      const looksLikeFqdn = host.includes('.');
+      if (!looksLikeFqdn && !environment.production) {
+        const port = window.location.port ? `:${window.location.port}` : '';
+        return `${window.location.protocol}//127.0.0.1${port}/site/${blog.id}`;
+      }
+      return `https://${host}`;
+    }
+
+    const generatedHost = `www.site-${blog.id}.cms.tovrika.com`;
+    return environment.production ? `https://${generatedHost}` : `${window.location.origin}/site/${blog.id}`;
+  }
+
+  getPublicPostUrl(blog: Blog, postSlug: string): string {
+    if (blog.domain) {
+      const host = blog.domain.replace(/^(https?:\/\/)?/, '');
+      const looksLikeFqdn = host.includes('.');
+      if (!looksLikeFqdn && !environment.production) {
+        const port = window.location.port ? `:${window.location.port}` : '';
+        return `${window.location.protocol}//127.0.0.1${port}/site/${blog.id}/${postSlug}`;
+      }
+      return `https://${host}/${postSlug}`;
+    }
+
+    const generatedHost = `www.site-${blog.id}.cms.tovrika.com`;
+    return environment.production ? `https://${generatedHost}/${postSlug}` : `${window.location.origin}/site/${blog.id}/${postSlug}`;
+  }
+
+  getThemeCssUrl(themeId?: string): string {
+    const id = themeId || 'default';
+    return `/assets/themes/${id}/theme.css`;
+  }
+
+  async loadPostById(blogId: string, postId: string): Promise<Post | null> {
+    const existing = this.getPostById(blogId, postId);
+    if (existing) return existing;
+    if (!this.firestore) return null;
+
+    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    const snapshot = await getDoc(postDoc);
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data() as Record<string, unknown>;
+    const post = this.normalizePost({ ...data, id: snapshot.id });
+    this.postsSignal.set([post, ...this.postsSignal()]);
+    return post;
   }
 
   async setBlogTheme(blogId: string, theme: string): Promise<void> {
@@ -358,7 +463,8 @@ export class CmsService {
 
   private loadPosts(): void {
     if (!environment.firebase.projectId || !this.firestore) {
-      this.postsSignal.set(mockPosts);
+      const localPosts = this.readLocalPosts();
+      this.postsSignal.set(localPosts.length ? localPosts : mockPosts);
       return;
     }
 
@@ -384,6 +490,23 @@ export class CmsService {
         catchError(() => of(mockPages))
       )
       .subscribe((pages) => this.pagesSignal.set(pages));
+  }
+
+  private saveLocalPosts(posts: Post[]): void {
+    try {
+      localStorage.setItem(this.localPostsKey, JSON.stringify(posts));
+    } catch {}
+  }
+
+  private readLocalPosts(): Post[] {
+    const raw = localStorage.getItem(this.localPostsKey);
+    if (!raw) return [];
+    try {
+      const posts = JSON.parse(raw) as Post[];
+      return Array.isArray(posts) ? posts : [];
+    } catch {
+      return [];
+    }
   }
 
   private normalizePost(item: Record<string, unknown>): Post {

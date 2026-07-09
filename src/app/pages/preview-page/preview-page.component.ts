@@ -9,39 +9,26 @@ import { CmsService } from '../../services/cms.service';
   imports: [CommonModule, RouterLink],
   template: `
     <section class="preview-page">
+      <link rel="stylesheet" [attr.href]="themeCssUrl">
       <div *ngIf="post; else loading">
-        <header class="site-header">
-          <div class="brand">{{ blog?.name || 'Preview Site' }}</div>
-          <nav class="site-nav">
-            <a [routerLink]="['/site', blog?.id]">Home</a>
-            <a [routerLink]="['/site', blog?.id]" fragment="posts">Posts</a>
-            <a [routerLink]="['/site', blog?.id]" fragment="about">About</a>
-          </nav>
+        <header class="preview-header">
+          <div class="preview-title">
+            <p class="status-label">Private preview</p>
+            <h1>{{ post.title }}</h1>
+            <p class="meta">{{ blog?.name || 'Preview site' }} · {{ post.publishedAt ? (post.publishedAt | date:'mediumDate') : 'Draft preview' }}</p>
+          </div>
+
+          <div class="preview-actions">
+            <a [routerLink]="['/posts', 'edit', post.id]" class="ghost-btn">Back to editor</a>
+            <a *ngIf="blog" [routerLink]="['/site', blog.id]" class="btn">View public site</a>
+          </div>
         </header>
 
-        <main class="site-main">
-          <article class="post-preview">
-            <h1>{{ post.title }}</h1>
-            <p class="meta">{{ post.category }} · {{ post.publishedAt | date:'mediumDate' }}</p>
-            <p class="excerpt">{{ post.excerpt }}</p>
-            <div class="content" [innerHTML]="post.content"></div>
-          </article>
-
-          <aside class="site-sidebar">
-            <section>
-              <h3>Recent posts</h3>
-              <ul>
-                <li *ngFor="let item of service.recentPostsSignal()">{{ item.title }}</li>
-              </ul>
-            </section>
-            <section>
-              <h3>Popular posts</h3>
-              <ul>
-                <li *ngFor="let item of service.popularPostsSignal()">{{ item.title }}</li>
-              </ul>
-            </section>
-          </aside>
-        </main>
+        <article class="post-preview">
+          <p class="category-label">{{ post.category }}</p>
+          <p class="excerpt">{{ post.excerpt }}</p>
+          <div class="content" [innerHTML]="post.content"></div>
+        </article>
       </div>
 
       <ng-template #loading>
@@ -50,17 +37,23 @@ import { CmsService } from '../../services/cms.service';
     </section>
   `,
   styles: [
-    `.preview-page { padding:1.5rem; }`,
-    `.site-header { display:flex; justify-content:space-between; align-items:center; padding:1rem 0; border-bottom:1px solid #e5e7eb; }`,
-    `.site-nav a { margin-left:0.75rem; color:#1d4ed8; text-decoration:none; }`,
-    `.site-main { display:grid; grid-template-columns:2fr 1fr; gap:2rem; margin-top:1.5rem; }`,
-    `.post-preview { background:white; padding:1.5rem; border-radius:1rem; box-shadow:0 1px 3px rgba(15,23,42,0.06); }`,
-    `.meta { color:#6b7280; margin-bottom:1rem; }`,
-    `.excerpt { color:#374151; margin-bottom:1.5rem; }`,
-    `.site-sidebar section { background:#f8fafc; padding:1rem; border-radius:0.85rem; margin-bottom:1rem; }`,
-    `.site-sidebar h3 { margin-top:0; margin-bottom:0.75rem; font-size:0.95rem; color:#374151; }`,
-    `.site-sidebar ul { list-style:none; padding:0; margin:0; }`,
-    `.site-sidebar li { padding:0.25rem 0; color:#1f2937; font-size:0.95rem; }
+    `.preview-page { padding:2rem; max-width:980px; margin:0 auto; }`,
+    `.preview-header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:1rem; align-items:flex-start; margin-bottom:1.5rem; }`,
+    `.preview-title { max-width:calc(100% - 220px); }`,
+    `.status-label { margin:0 0 0.5rem 0; font-size:0.85rem; letter-spacing:0.16em; text-transform:uppercase; color:#2563eb; }`,
+    `.preview-header h1 { margin:0; font-size:2.25rem; line-height:1.1; }`,
+    `.preview-header .meta { margin:0.75rem 0 0; color:#475569; }`,
+    `.preview-actions { display:flex; gap:0.75rem; flex-wrap:wrap; }`,
+    `.ghost-btn, .btn { display:inline-flex; align-items:center; justify-content:center; padding:0.85rem 1rem; border-radius:0.75rem; font-weight:700; text-decoration:none; }`,
+    `.ghost-btn { background:#f8fafc; border:1px solid #cbd5e1; color:#1d4ed8; }`,
+    `.ghost-btn:hover { background:#eff6ff; }`,
+    `.btn { background:#1d4ed8; color:white; border:none; }`,
+    `.btn:hover { background:#2563eb; }`,
+    `.post-preview { background:white; padding:1.75rem; border-radius:1rem; box-shadow:0 1px 4px rgba(15,23,42,0.08); }`,
+    `.category-label { display:inline-block; margin:0 0 1rem 0; padding:0.35rem 0.75rem; border-radius:999px; background:#e0f2fe; color:#0369a1; font-size:0.85rem; }`,
+    `.excerpt { color:#334155; margin-bottom:1.25rem; font-size:1.05rem; line-height:1.7; }`,
+    `.content { color:#111827; line-height:1.75; }`,
+    `.content img { max-width:100%; height:auto; border-radius:0.75rem; }
   `]
 })
 export class PreviewPageComponent {
@@ -68,6 +61,7 @@ export class PreviewPageComponent {
   readonly service = inject(CmsService);
   post: any = null;
   blog: any = null;
+  themeCssUrl = '';
 
   constructor() {
     const params = this.route.snapshot.paramMap;
@@ -76,6 +70,7 @@ export class PreviewPageComponent {
 
     if (blogId) {
       this.blog = this.service.blogsSignal().find((b) => b.id === blogId) ?? null;
+      this.themeCssUrl = this.service.getThemeCssUrl(this.blog?.theme);
     }
 
     if (blogId && postId) {

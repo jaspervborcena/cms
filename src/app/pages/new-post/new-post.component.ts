@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CmsService } from '../../services/cms.service';
 import { Post } from '../../models/cms.models';
 
@@ -78,13 +78,14 @@ import { Post } from '../../models/cms.models';
     `.btn { padding:0.75rem 1rem; background:#1d4ed8; color:white; border:none; border-radius:0.65rem; font-weight:700; cursor:pointer; }`
   ]
 })
-export class NewPostComponent {
+export class NewPostComponent implements OnInit {
   @ViewChild('editor', { static: true }) editor?: ElementRef<HTMLDivElement>;
   @ViewChild('imageInput', { static: true }) imageInput?: ElementRef<HTMLInputElement>;
 
   private fb = inject(FormBuilder);
   private cms = inject(CmsService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -93,6 +94,26 @@ export class NewPostComponent {
   });
 
   currentPost: Post | null = null;
+
+  ngOnInit(): void {
+    const postId = this.route.snapshot.paramMap.get('postId');
+    const blog = this.cms.activeBlogSignal();
+
+    if (!blog || !postId) return;
+
+    this.cms.loadPostById(blog.id, postId).then((post) => {
+      if (!post) return;
+      this.currentPost = post;
+      this.form.setValue({
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content
+      });
+      if (this.editor) {
+        this.editor.nativeElement.innerHTML = post.content;
+      }
+    });
+  }
 
   saveDraft(): void {
     const blog = this.cms.activeBlogSignal();
@@ -118,10 +139,30 @@ export class NewPostComponent {
 
   preview(): void {
     const blog = this.cms.activeBlogSignal();
-    if (!blog || !this.currentPost) {
+    if (!blog) {
+      this.router.navigate(['/onboarding']);
       return;
     }
-    this.router.navigate(['/preview', blog.id, this.currentPost.id]);
+
+    const navigatePreview = (postId: string) => {
+      window.open(`${window.location.origin}/preview/${blog.id}/${postId}`, '_blank');
+    };
+
+    const { title, excerpt, content } = this.form.getRawValue();
+    if (this.currentPost) {
+      this.cms.updatePost(blog.id, this.currentPost.id, { title, excerpt, content, status: 'draft' }).then((updated) => {
+        if (updated) {
+          this.currentPost = updated;
+          navigatePreview(updated.id);
+        }
+      });
+      return;
+    }
+
+    this.cms.createPost(blog.id, { title, excerpt, content, status: 'draft' }).then((created) => {
+      this.currentPost = created;
+      navigatePreview(created.id);
+    });
   }
 
   publish(): void {
@@ -131,16 +172,23 @@ export class NewPostComponent {
       return;
     }
 
+    const navigatePublished = (slug: string) => {
+      window.open(this.cms.getPublicPostUrl(blog, slug), '_blank');
+    };
+
     const { title, excerpt, content } = this.form.getRawValue();
     if (this.currentPost) {
-      this.cms.publishPost(blog.id, this.currentPost.id).then(() => {
-        this.router.navigate(['/site', blog.id]);
+      this.cms.publishPost(blog.id, this.currentPost.id).then((updated) => {
+        if (updated) {
+          navigatePublished(updated.slug);
+        }
       });
       return;
     }
 
-    this.cms.createPost(blog.id, { title, excerpt, content, status: 'published' }).then(() => {
-      this.router.navigate(['/site', blog.id]);
+    this.cms.createPost(blog.id, { title, excerpt, content, status: 'published' }).then((created) => {
+      this.currentPost = created;
+      navigatePublished(created.slug);
     });
   }
 

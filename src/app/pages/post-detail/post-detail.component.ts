@@ -12,8 +12,8 @@ import { CmsService } from '../../services/cms.service';
     <article class="detail" *ngIf="post$ | async as post; else loading">
       <h1>{{ post.title }}</h1>
       <p class="meta">{{ post.category }} · {{ post.publishedAt | date }}</p>
-      <p>{{ post.content }}</p>
-      <a routerLink="/posts">Back to posts</a>
+      <div class="content" [innerHTML]="post.content"></div>
+      <a [routerLink]="['/site', blogId]">Back to site</a>
     </article>
     <ng-template #loading>
       <p>Loading post…</p>
@@ -28,15 +28,17 @@ import { CmsService } from '../../services/cms.service';
 export class PostDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(CmsService);
+  blogId: string | null = null;
 
   readonly post$ = this.route.paramMap.pipe(
-    map((params) => params.get('slug')),
-    switchMap((slug) => {
-      if (!slug) {
+    map((params) => ({ blogId: params.get('blogId'), slug: params.get('slug') })),
+    switchMap(({ blogId, slug }) => {
+      this.blogId = blogId;
+      if (!blogId || !slug) {
         return of(null);
       }
 
-      const post = this.service.postsSignal().find((item) => item.slug === slug);
+      const post = this.service.findPostBySlug(blogId, slug);
       return of(post ?? null);
     })
   );

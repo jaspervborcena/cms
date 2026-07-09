@@ -1,0 +1,52 @@
+:root{
+  --bg: #f6f7f9;
+  --paper: #ffffff;
+  --accent: #ec6a5f;
+  --muted: #6b7280;
+  --heading: #0f172a;
+  --sidebar-bg: #ffffff;
+}
+/* Base layout */
+body{
+  background: var(--bg);
+  color: var(--heading);
+  font-family: 'Merriweather', Georgia, serif;
+  line-height:1.6;
+}
+.site-header{
+  background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.3)), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="200"><rect width="100%" height="100%" fill="%23f8fafc"/></svg>') center/cover no-repeat;
+  padding: 3rem 1rem;
+  border-bottom: 1px solid rgba(15,23,42,0.04);
+}
+.site-brand{ font-family: 'Playfair Display', Georgia, serif; font-size:2rem; font-weight:700; color:var(--heading); }
+
+/* Two-column layout with left sidebar */
+.site-container{ display:grid; grid-template-columns: 300px 1fr; gap:2rem; max-width:1100px; margin:2rem auto; padding:0 1rem; }
+.sidebar{ background:var(--sidebar-bg); padding:1.5rem; border-radius:8px; box-shadow:0 6px 18px rgba(18,23,33,0.03); }
+.author-avatar{ width:84px; height:84px; border-radius:8px; background:linear-gradient(135deg,#fff,#f2f4f7); margin-bottom:0.75rem; display:block; }
+.author-name{ font-weight:700; margin-bottom:0.25rem; }
+.author-bio{ color:var(--muted); font-size:0.95rem; }
+
+.main{ }
+.post-card{ background:var(--paper); padding:2rem; border-radius:8px; box-shadow:0 12px 30px rgba(18,23,33,0.04); margin-bottom:1.5rem; }
+.post-title{ font-family: 'Playfair Display', Georgia, serif; font-size:1.75rem; margin:0 0 0.5rem 0; }
+.post-meta{ color:var(--muted); font-size:0.9rem; margin-bottom:1rem; }
+.post-content img{ max-width:100%; height:auto; border-radius:6px; }
+
+.post-list-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1rem; }
+.post-preview{ background:var(--paper); padding:1rem; border-radius:6px; }
+.post-preview .title{ font-weight:700; color:var(--heading); }
+.post-preview .excerpt{ color:var(--muted); font-size:0.95rem; }
+
+.site-footer{ text-align:center; color:var(--muted); padding:2rem 0; }
+
+/* Accent styles */
+a{ color:var(--accent); text-decoration:none; }
+a:hover{ text-decoration:underline; }
+
+/* Responsive */
+@media (max-width:900px){
+  .site-container{ grid-template-columns: 1fr; }
+  .sidebar{ order:2; }
+  .main{ order:1; }
+}

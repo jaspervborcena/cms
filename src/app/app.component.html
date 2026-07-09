@@ -1,4 +1,10 @@
-﻿@if (!auth.isAuthenticated() && isPublicRoute) {
+﻿@if (isPreviewRoute || isSiteRoute) {
+  <div class="layout">
+    <main class="public-main">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+} @else if (isPublicRoute) {
   <div class="layout">
     <header class="public-header">
       <div class="brand">Tovrika CMS</div>

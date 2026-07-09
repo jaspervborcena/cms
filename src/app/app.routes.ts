@@ -5,6 +5,8 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { OnboardingComponent } from './pages/onboarding/onboarding.component';
 import { PreviewPageComponent } from './pages/preview-page/preview-page.component';
 import { SitePageComponent } from './pages/site-page/site-page.component';
+import { PostDetailComponent } from './pages/post-detail/post-detail.component';
+import { PublicHostComponent } from './pages/public-host/public-host.component';
 import { authGuard } from './guards/auth.guard';
 import { ensureBlogGuard } from './guards/ensure-blog.guard';
 import { NewPostComponent } from './pages/new-post/new-post.component';
@@ -15,11 +17,15 @@ export const routes: Routes = [
   { path: 'login', component: AuthComponent },
   { path: 'register', component: AuthComponent },
   { path: 'onboarding', component: OnboardingComponent, canActivate: [authGuard] },
-  { path: 'preview/:blogId/:postId', component: PreviewPageComponent, canActivate: [authGuard] },
+  { path: 'preview/:blogId/:postId', component: PreviewPageComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'site/:blogId', component: SitePageComponent },
+  { path: 'site/:blogId/:slug', component: PostDetailComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/:blogId', component: DashboardComponent, canActivate: [authGuard, ensureBlogGuard] },
+  { path: 'dashboard/:blogId/theme', loadComponent: () => import('./pages/theme-settings/theme-settings.component').then(m => m.ThemeSettingsComponent), canActivate: [authGuard, ensureBlogGuard] },
   { path: 'posts', component: PostsListComponent, canActivate: [authGuard, ensureBlogGuard] },
+  { path: 'posts/edit/:postId', component: NewPostComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'posts/new', component: NewPostComponent, canActivate: [authGuard, ensureBlogGuard] },
+  { path: ':hostSlug/:slug', component: PublicHostComponent },
   { path: '**', redirectTo: '' }
 ];

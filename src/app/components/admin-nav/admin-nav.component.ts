@@ -28,7 +28,7 @@ import { CmsService } from '../../services/cms.service';
         <li><a routerLink="/dashboard">Earnings</a></li>
         <li><a routerLink="/pages">Pages</a></li>
         <li><a routerLink="/dashboard">Layout</a></li>
-        <li><a routerLink="/dashboard">Theme</a></li>
+        <li><a (click)="openTheme()">Theme</a></li>
         <li><a routerLink="/dashboard">Settings</a></li>
       </ul>
 
@@ -68,5 +68,11 @@ export class AdminNavComponent {
       return;
     }
     this.router.navigate(['/posts/new']);
+  }
+
+  openTheme() {
+    const blog = this.cms.activeBlogSignal();
+    if (!blog) return;
+    this.router.navigate(['/dashboard', blog.id, 'theme']);
   }
 }

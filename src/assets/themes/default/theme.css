@@ -1,0 +1,9 @@
+:root{
+  --bg:#f8fafc; --card:#ffffff; --accent:#1d4ed8; --muted:#6b7280; --text:#0f172a;
+}
+body { background:var(--bg); color:var(--text); font-family:Inter, system-ui, sans-serif; }
+.site-header{ background:var(--card); padding:1rem 0; border-bottom:1px solid #e6eefb; }
+.brand{ font-weight:800; color:var(--accent); }
+.post-preview{ background:var(--card); padding:1.5rem; border-radius:1rem; }
+.site-nav a{ color:var(--accent); text-decoration:none; }
+.site-footer{ padding:1rem 0; color:var(--muted); border-top:1px solid #e6eefb; }

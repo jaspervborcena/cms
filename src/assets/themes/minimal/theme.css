@@ -1,0 +1,9 @@
+:root{
+  --bg:#ffffff; --card:#ffffff; --accent:#0f172a; --muted:#475569; --text:#0f172a;
+}
+body{ background:var(--bg); color:var(--text); font-family:Georgia, serif; }
+.site-header{ background:transparent; padding:1.5rem 0; border-bottom:none; }
+.brand{ font-weight:700; color:var(--accent); font-size:1.25rem; }
+.post-preview{ background:transparent; padding:0; border-radius:0; }
+.site-nav a{ color:var(--accent); margin-right:1rem; }
+.site-footer{ padding:2rem 0; color:var(--muted); border-top:1px solid #f1f5f9; }

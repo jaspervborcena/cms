@@ -16,8 +16,20 @@ export class AppComponent {
   readonly auth = inject(AuthService);
   readonly router = inject(Router);
 
+  private get currentUrl(): string {
+    return this.router.url;
+  }
+
+  get isPreviewRoute(): boolean {
+    return this.currentUrl.startsWith('/preview');
+  }
+
+  get isSiteRoute(): boolean {
+    return this.currentUrl.startsWith('/site');
+  }
+
   get isPublicRoute(): boolean {
-    const url = this.router.url;
-    return url === '/' || url === '/login' || url === '/register' || url.startsWith('/site') || url.startsWith('/preview');
+    const url = this.currentUrl;
+    return url === '/' || url === '/login' || url === '/register';
   }
 }
