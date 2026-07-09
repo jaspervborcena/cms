@@ -12,6 +12,9 @@ A lightweight Angular editorial CMS starter built with standalone components, Fi
 - `CmsService` using Angular signals for posts, blogs, and active blog state
 - Posts page with `Create post` action and post listing
 - Rich post editor with formatting toolbar, preview mode, and device image upload
+- Hybrid Firestore + Firebase Storage content model for published HTML posts
+- Page-based public site navigation with CMS-managed pages and innerHTML page rendering
+- Production wildcard subdomain routing for `cms.tovrika.com`
 - Local fallback mode when Firebase is not configured
 
 ## Current Status
@@ -27,10 +30,16 @@ A lightweight Angular editorial CMS starter built with standalone components, Fi
 - Image upload from device into the editor
 - Posts list page with create button and empty-state messaging
 - Header simplified to brand + account only (no dashboard/posts/pages nav links)
+- Draft / preview / publish flow for posts
+- Preview action labeled as `Publish`
+- Published public site routes under `/site/:blogId` and `/site/:blogId/:slug`
+- Page-based public site navigation and CMS-managed page rendering
+- Theme selection with default theme fallback for published blog pages
+- Production wildcard subdomain routing support for `*.cms.tovrika.com`
 
 ### Notes
 
-- The editor stores HTML content in the `content` field.
+- The editor stores HTML content in the `content` field, with published content also uploaded to Firebase Storage and referenced by `contentUrl`.
 - Uploaded images are inserted as base64 image data.
 - If Firebase is not configured, the app falls back to local persistence.
 
@@ -129,6 +138,15 @@ ng e2e
 - Example routes:
   - `cms.tovrika.com/local-it741aj/test`
   - `www.local-it741aj.cms.tovrika.com/test`
+
+## Next Improvements
+
+- Add richer post list cards and preview links on `/posts`
+- Filter dashboard content by the selected active blog
+- Add `/dashboard/:blogId` deep links and blog switching in the UI
+- Harden Firestore security rules for per-user blog ownership
+- Improve editor styling to more closely match the admin screenshot
+- Add better author and blog settings pages
 
 ## Summary
 

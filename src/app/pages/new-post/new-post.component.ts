@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CmsService } from '../../services/cms.service';
@@ -26,6 +26,8 @@ import { Post } from '../../models/cms.models';
       <form [formGroup]="form" class="editor-shell" (ngSubmit)="saveDraft()">
         <label>Title<input formControlName="title" placeholder="Post title" /></label>
         <label>Excerpt<textarea formControlName="excerpt" placeholder="Short summary"></textarea></label>
+
+        <div *ngIf="saveError()" class="error-message">{{ saveError() }}</div>
 
         <div class="editor-toolbar">
           <button type="button" (click)="format('undo')" title="Undo">↺</button>
@@ -74,6 +76,7 @@ import { Post } from '../../models/cms.models';
     `.editor-toolbar button:hover { background:#eff6ff; border-color:#bfdbfe; }`,
     `.editor-panel { min-height:320px; border:1px solid #d1d5db; border-radius:0.75rem; padding:1rem; background:white; outline:none; }`,
     `.editor-panel:focus { box-shadow:0 0 0 3px rgba(59,130,246,0.18); border-color:#2563eb; }`,
+    `.error-message { color:#b91c1c; margin:0.75rem 0; font-weight:700; }`,
     `.actions { margin-top:1.25rem; }`,
     `.btn { padding:0.75rem 1rem; background:#1d4ed8; color:white; border:none; border-radius:0.65rem; font-weight:700; cursor:pointer; }`
   ]
@@ -86,6 +89,8 @@ export class NewPostComponent implements OnInit {
   private cms = inject(CmsService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+
+  readonly saveError = signal<string | null>(null);
 
   form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -115,7 +120,7 @@ export class NewPostComponent implements OnInit {
     });
   }
 
-  saveDraft(): void {
+  async saveDraft(): Promise<void> {
     const blog = this.cms.activeBlogSignal();
     if (!blog) {
       this.router.navigate(['/onboarding']);
@@ -123,21 +128,30 @@ export class NewPostComponent implements OnInit {
     }
 
     const { title, excerpt, content } = this.form.getRawValue();
-    if (this.currentPost) {
-      this.cms.updatePost(blog.id, this.currentPost.id, { title, excerpt, content, status: 'draft' }).then((updated) => {
+    this.saveError.set(null);
+
+    try {
+      if (this.currentPost) {
+        const updated = await this.cms.updatePost(blog.id, this.currentPost.id, {
+          title,
+          excerpt,
+          content,
+          status: 'draft'
+        });
         if (updated) {
           this.currentPost = updated;
         }
-      });
-      return;
-    }
+        return;
+      }
 
-    this.cms.createPost(blog.id, { title, excerpt, content, status: 'draft' }).then((created) => {
+      const created = await this.cms.createPost(blog.id, { title, excerpt, content, status: 'draft' });
       this.currentPost = created;
-    });
+    } catch (error: any) {
+      this.saveError.set(error?.message ?? 'Unable to save draft. Make sure you are online and connected to Firestore.');
+    }
   }
 
-  preview(): void {
+  async preview(): Promise<void> {
     const blog = this.cms.activeBlogSignal();
     if (!blog) {
       this.router.navigate(['/onboarding']);
@@ -149,23 +163,32 @@ export class NewPostComponent implements OnInit {
     };
 
     const { title, excerpt, content } = this.form.getRawValue();
-    if (this.currentPost) {
-      this.cms.updatePost(blog.id, this.currentPost.id, { title, excerpt, content, status: 'draft' }).then((updated) => {
+    this.saveError.set(null);
+
+    try {
+      if (this.currentPost) {
+        const updated = await this.cms.updatePost(blog.id, this.currentPost.id, {
+          title,
+          excerpt,
+          content,
+          status: 'draft'
+        });
         if (updated) {
           this.currentPost = updated;
           navigatePreview(updated.id);
         }
-      });
-      return;
-    }
+        return;
+      }
 
-    this.cms.createPost(blog.id, { title, excerpt, content, status: 'draft' }).then((created) => {
+      const created = await this.cms.createPost(blog.id, { title, excerpt, content, status: 'draft' });
       this.currentPost = created;
       navigatePreview(created.id);
-    });
+    } catch (error: any) {
+      this.saveError.set(error?.message ?? 'Unable to save preview. Make sure you are online and connected to Firestore.');
+    }
   }
 
-  publish(): void {
+  async publish(): Promise<void> {
     const blog = this.cms.activeBlogSignal();
     if (!blog) {
       this.router.navigate(['/onboarding']);
@@ -177,19 +200,28 @@ export class NewPostComponent implements OnInit {
     };
 
     const { title, excerpt, content } = this.form.getRawValue();
-    if (this.currentPost) {
-      this.cms.publishPost(blog.id, this.currentPost.id).then((updated) => {
+    this.saveError.set(null);
+
+    try {
+      if (this.currentPost) {
+        const updated = await this.cms.updatePost(blog.id, this.currentPost.id, {
+          title,
+          excerpt,
+          content,
+          status: 'published'
+        });
         if (updated) {
           navigatePublished(updated.slug);
         }
-      });
-      return;
-    }
+        return;
+      }
 
-    this.cms.createPost(blog.id, { title, excerpt, content, status: 'published' }).then((created) => {
+      const created = await this.cms.createPost(blog.id, { title, excerpt, content, status: 'published' });
       this.currentPost = created;
       navigatePublished(created.slug);
-    });
+    } catch (error: any) {
+      this.saveError.set(error?.message ?? 'Unable to publish post. Make sure you are online and connected to Firestore.');
+    }
   }
 
   format(command: string, value: string = ''): void {
