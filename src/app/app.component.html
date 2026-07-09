@@ -1,0 +1,35 @@
+﻿@if (!auth.isAuthenticated() && isPublicRoute) {
+  <div class="layout">
+    <header class="public-header">
+      <div class="brand">Tovrika CMS</div>
+      <nav class="nav">
+        <a routerLink="/">Home</a>
+        <a routerLink="/login">Login</a>
+        <a routerLink="/register">Register</a>
+        <a routerLink="/" fragment="plans">Plans</a>
+      </nav>
+    </header>
+
+    <main class="public-main">
+      <router-outlet></router-outlet>
+    </main>
+
+    <footer class="public-footer">
+      <p>© 2026 Tovrika. Build your app with a simple editorial experience.</p>
+    </footer>
+  </div>
+} @else {
+  <div class="layout">
+    <app-header></app-header>
+
+    <main class="main-shell">
+      <app-admin-nav></app-admin-nav>
+      <section class="content-area">
+        <router-outlet></router-outlet>
+      </section>
+      <app-sidebar></app-sidebar>
+    </main>
+
+    <app-footer></app-footer>
+  </div>
+}
