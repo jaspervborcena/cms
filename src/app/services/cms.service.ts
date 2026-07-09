@@ -203,10 +203,13 @@ export class CmsService {
     const docRef = await addDoc(postsCollection, postMeta as any);
 
     const content = data.content ?? '';
-    const contentUrl = await this.uploadPostContent(blogId, docRef.id, content);
+    let contentUrl: string | undefined;
 
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${docRef.id}`);
-    await updateDoc(postDoc, { contentUrl } as any);
+    if (content.trim().length) {
+      contentUrl = await this.uploadPostContent(blogId, docRef.id, content);
+      const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${docRef.id}`);
+      await updateDoc(postDoc, { contentUrl } as any);
+    }
 
     const newPost: Post = { ...(postMeta as Post), id: docRef.id, content, contentUrl };
     this.postsSignal.set([newPost, ...this.postsSignal()]);
@@ -226,20 +229,31 @@ export class CmsService {
       contentUrl: post.contentUrl
     };
 
-    if (data.content !== undefined) {
-      const content = data.content ?? '';
-      updated.contentUrl = await this.uploadPostContent(blogId, postId, content) ?? post.contentUrl;
-    }
-
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
-    await updateDoc(postDoc, {
+    const updateData: any = {
       title: updated.title,
       excerpt: updated.excerpt,
       category: updated.category,
       status: updated.status,
-      publishedAt: updated.publishedAt,
-      contentUrl: updated.contentUrl
-    } as any);
+      publishedAt: updated.publishedAt
+    };
+
+    if (data.content !== undefined) {
+      const content = data.content ?? '';
+      updated.content = content;
+
+      if (content.trim().length) {
+        updated.contentUrl = await this.uploadPostContent(blogId, postId, content);
+        updateData.contentUrl = updated.contentUrl;
+      } else {
+        updated.contentUrl = undefined;
+        updateData.contentUrl = null;
+      }
+    } else if (updated.contentUrl !== undefined) {
+      updateData.contentUrl = updated.contentUrl;
+    }
+
+    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    await updateDoc(postDoc, updateData as any);
 
     this.postsSignal.set(this.postsSignal().map((item) => (item.id === postId ? updated : item)));
     return updated;
