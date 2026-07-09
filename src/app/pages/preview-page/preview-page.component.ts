@@ -20,7 +20,7 @@ import { CmsService } from '../../services/cms.service';
 
           <div class="preview-actions">
             <a [routerLink]="['/posts', 'edit', post.id]" class="ghost-btn">Back to editor</a>
-            <a *ngIf="blog" [routerLink]="['/site', blog.id]" class="btn">View public site</a>
+            <a *ngIf="blog" [routerLink]="['/site', blog.id]" class="btn">Publish</a>
           </div>
         </header>
 
@@ -53,8 +53,9 @@ import { CmsService } from '../../services/cms.service';
     `.category-label { display:inline-block; margin:0 0 1rem 0; padding:0.35rem 0.75rem; border-radius:999px; background:#e0f2fe; color:#0369a1; font-size:0.85rem; }`,
     `.excerpt { color:#334155; margin-bottom:1.25rem; font-size:1.05rem; line-height:1.7; }`,
     `.content { color:#111827; line-height:1.75; }`,
-    `.content img { max-width:100%; height:auto; border-radius:0.75rem; }
-  `]
+    `.content img { max-width:100%; height:auto; border-radius:0.75rem; }`,
+    `.preview-footer { margin-top:2rem; padding-top:1rem; border-top:1px solid #e2e8f0; color:#475569; }`
+  ]
 })
 export class PreviewPageComponent {
   private readonly route = inject(ActivatedRoute);

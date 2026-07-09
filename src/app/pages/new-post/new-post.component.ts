@@ -215,13 +215,47 @@ export class NewPostComponent implements OnInit {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
-      const url = reader.result as string;
-      document.execCommand('insertImage', false, url);
+    reader.onload = async () => {
+      const imageUrl = reader.result as string;
+      const finalUrl = await this.processImageForEditor(imageUrl);
+      document.execCommand('insertImage', false, finalUrl);
       this.syncContent();
       input.value = '';
     };
     reader.readAsDataURL(file);
+  }
+
+  private async processImageForEditor(imageUrl: string): Promise<string> {
+    const maxMm = 10;
+    const dpi = 96;
+    const maxPx = Math.round((maxMm / 25.4) * dpi);
+
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+        const maxSize = Math.max(width, height);
+        if (maxSize <= maxPx) {
+          resolve(imageUrl);
+          return;
+        }
+
+        const scale = maxPx / maxSize;
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(width * scale);
+        canvas.height = Math.round(height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(imageUrl);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/png', 0.92));
+      };
+      img.src = imageUrl;
+    });
   }
 
   syncContent(): void {

@@ -11,7 +11,7 @@ import { CmsService } from '../../services/cms.service';
   template: `
     <article class="detail" *ngIf="page$ | async as page; else loading">
       <h1>{{ page.title }}</h1>
-      <p>{{ page.content }}</p>
+      <div class="content" [innerHTML]="page.content"></div>
       <a routerLink="/pages">Back to pages</a>
     </article>
     <ng-template #loading>

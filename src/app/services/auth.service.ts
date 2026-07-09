@@ -1,6 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Auth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from '@angular/fire/auth';
+import { Firestore, doc, setDoc } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
+import { getAuthErrorMessage } from '../messages/auth-messages';
 
 export interface AuthUser {
   uid: string;
@@ -12,6 +14,7 @@ export interface AuthUser {
 export class AuthService {
   private readonly router = inject(Router);
   private readonly firebaseAuth = inject(Auth, { optional: true });
+  private readonly firestore = inject(Firestore, { optional: true });
 
   readonly authSignal = signal<AuthUser | null>(this.readStoredUser());
   readonly isAuthenticated = computed(() => !!this.authSignal());
@@ -27,47 +30,78 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<void> {
-    try {
-      if (this.firebaseAuth) {
-        const credential = await signInWithEmailAndPassword(this.firebaseAuth, email, password);
-        const authUser = this.toAuthUser(credential.user);
-        this.authSignal.set(authUser);
-        this.persistUser(authUser);
-        return;
-      }
-    } catch {
-      // Fall back to a local demo account when Firebase is not configured.
+    if (!this.firebaseAuth) {
+      const authUser = {
+        uid: `local-${email}`,
+        email,
+        displayName: email.split('@')[0]
+      };
+      this.authSignal.set(authUser);
+      this.persistUser(authUser);
+      return;
     }
 
-    const authUser = {
-      uid: `local-${email}`,
-      email,
-      displayName: email.split('@')[0]
-    };
-    this.authSignal.set(authUser);
-    this.persistUser(authUser);
+    try {
+      const credential = await signInWithEmailAndPassword(this.firebaseAuth, email, password);
+      const authUser = this.toAuthUser(credential.user);
+      this.authSignal.set(authUser);
+      this.persistUser(authUser);
+      await this.ensureUserDocument(authUser, false);
+      return;
+    } catch (error: any) {
+      const message = getAuthErrorMessage(error?.code);
+      throw new Error(message);
+    }
   }
 
   async register(email: string, password: string): Promise<void> {
-    try {
-      if (this.firebaseAuth) {
-        const credential = await createUserWithEmailAndPassword(this.firebaseAuth, email, password);
-        const authUser = this.toAuthUser(credential.user);
-        this.authSignal.set(authUser);
-        this.persistUser(authUser);
-        return;
-      }
-    } catch {
-      // Fall back to a local demo account when Firebase is not configured.
+    if (!this.firebaseAuth) {
+      const authUser = {
+        uid: `local-${email}`,
+        email,
+        displayName: email.split('@')[0]
+      };
+      this.authSignal.set(authUser);
+      this.persistUser(authUser);
+      return;
     }
 
-    const authUser = {
-      uid: `local-${email}`,
-      email,
-      displayName: email.split('@')[0]
+    try {
+      const credential = await createUserWithEmailAndPassword(this.firebaseAuth, email, password);
+      const authUser = this.toAuthUser(credential.user);
+      this.authSignal.set(authUser);
+      this.persistUser(authUser);
+      await this.ensureUserDocument(authUser, true);
+      return;
+    } catch (error: any) {
+      const message = getAuthErrorMessage(error?.code);
+      throw new Error(message);
+    }
+  }
+
+  private async ensureUserDocument(user: AuthUser, isNewUser: boolean): Promise<void> {
+    if (!this.firestore || !user?.uid) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const userDoc = doc(this.firestore, `users/${user.uid}`);
+    const payload = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      emailVerified: this.firebaseAuth?.currentUser?.emailVerified ?? false,
+      roles: ['creator'],
+      roleId: 4,
+      blogsOwned: [],
+      blogsMember: [],
+      status: 'active',
+      lastLogin: now,
+      updatedAt: now,
+      ...(isNewUser ? { createdAt: now } : {})
     };
-    this.authSignal.set(authUser);
-    this.persistUser(authUser);
+
+    await setDoc(userDoc, payload, { merge: true });
   }
 
   async logout(): Promise<void> {

@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Page } from '../../models/cms.models';
 import { CmsService } from '../../services/cms.service';
 
 @Component({
@@ -19,7 +20,9 @@ import { CmsService } from '../../services/cms.service';
           <nav class="site-nav">
             <a [routerLink]="['/site', blog.id]">Home</a>
             <a [routerLink]="['/site', blog.id]" fragment="posts">Posts</a>
-            <a [routerLink]="['/site', blog.id]" fragment="about">About</a>
+            <ng-container *ngFor="let page of pages">
+              <a [routerLink]="['/pages', page.slug]">{{ page.title }}</a>
+            </ng-container>
           </nav>
         </header>
 
@@ -30,12 +33,19 @@ import { CmsService } from '../../services/cms.service';
           </section>
 
           <section class="post-grid">
+            <article class="card" *ngIf="publishedPosts.length === 0">
+              <h3>No published posts yet</h3>
+              <p>This site is live but there are no posts published yet.</p>
+            </article>
             <article class="card" *ngFor="let post of publishedPosts">
               <h3>{{ post.title }}</h3>
               <p>{{ post.excerpt }}</p>
               <a [routerLink]="['/site', blog.id, post.slug]">Read more</a>
             </article>
           </section>
+          <footer class="site-footer">
+            <p>© {{ blog.name }} · Content and layout are styled by the selected theme.</p>
+          </footer>
         </main>
       </div>
 
@@ -52,6 +62,7 @@ import { CmsService } from '../../services/cms.service';
     `.site-nav { display:flex; gap:1rem; flex-wrap:wrap; }`,
     `.site-nav a { color:#1d4ed8; text-decoration:none; font-weight:600; }`,
     `.site-nav a:hover { text-decoration:underline; }`,
+    `.site-footer { margin-top:2rem; padding-top:1.25rem; border-top:1px solid #e2e8f0; color:#475569; }`,
     `.site-main { margin-top:2rem; }`,
     `.site-hero { margin-bottom:1.75rem; }`,
     `.site-hero h1 { margin:0 0 0.5rem; font-size:2.25rem; line-height:1.05; }`,
@@ -67,6 +78,7 @@ import { CmsService } from '../../services/cms.service';
 export class SitePageComponent {
   private readonly route = inject(ActivatedRoute);
   readonly service = inject(CmsService);
+  pages: Page[] = [];
   publishedPosts = [] as any[];
   blog: any = null;
   themeCssUrl = '';
@@ -76,6 +88,7 @@ export class SitePageComponent {
     if (!blogId) return;
 
     this.blog = this.service.blogsSignal().find((b) => b.id === blogId) ?? null;
+    this.pages = this.service.pagesSignal();
     this.publishedPosts = this.service.postsSignal().filter((post) => post.blogId === blogId && post.status === 'published');
     this.themeCssUrl = this.service.getThemeCssUrl(this.blog?.theme);
   }

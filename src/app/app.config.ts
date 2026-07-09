@@ -10,9 +10,7 @@ import { environment } from '../environments/environment';
 
 import { routes } from './app.routes';
 
-// Temporarily disable Firebase providers to avoid runtime injection errors
-// (will re-enable once initialization is verified)
-const hasFirebase = false && !!(environment.firebase && environment.firebase.projectId);
+const hasFirebase = !!(environment.firebase && environment.firebase.projectId);
 
 export const appConfig: ApplicationConfig = {
   providers: [
