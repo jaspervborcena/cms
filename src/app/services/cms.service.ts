@@ -229,7 +229,7 @@ export class CmsService {
     const status = data.status ?? 'draft';
     await this.ensureBlogHasTheme(blogId);
 
-    const postMeta = {
+    const postMeta: any = {
       uid: this.auth.authSignal()?.uid ?? undefined,
       title: data.title,
       slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
@@ -238,9 +238,12 @@ export class CmsService {
       blogId,
       status,
       views: 0,
-      createdAt: now,
-      publishedAt: status === 'published' ? now : undefined
+      createdAt: now
     };
+
+    if (status === 'published') {
+      postMeta.publishedAt = now;
+    }
 
     const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
     const docRef = await addDoc(postsCollection, postMeta as any);
@@ -295,8 +298,15 @@ export class CmsService {
       updateData.contentUrl = updated.contentUrl;
     }
 
+    // Remove keys with undefined values to avoid Firestore rejecting the update
+    Object.keys(updateData).forEach((k) => {
+      if (updateData[k] === undefined) delete updateData[k];
+    });
+
     const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
-    await updateDoc(postDoc, updateData as any);
+    if (Object.keys(updateData).length > 0) {
+      await updateDoc(postDoc, updateData as any);
+    }
 
     this.postsSignal.set(this.postsSignal().map((item) => (item.id === postId ? updated : item)));
     return updated;
