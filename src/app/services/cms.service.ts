@@ -502,6 +502,13 @@ export class CmsService {
   }
 
   getPublicSiteUrl(blog: Blog): string {
+    // If the blog has an explicit domain, prefer it for published URLs.
+    if (blog && blog.domain) {
+      const host = blog.domain.trim();
+      if (host.startsWith('http')) return `${host.replace(/\/$/, '')}/site/${blog.id}`;
+      return `https://${host}/site/${blog.id}`;
+    }
+
     if (this.isLocalDevelopmentHost()) {
       return this.getLocalPreviewUrl(`/site/${blog.id}`);
     }
@@ -511,6 +518,13 @@ export class CmsService {
   }
 
   getPublicPostUrl(blog: Blog, postSlug: string): string {
+    // Prefer explicit blog domain for published post links
+    if (blog && blog.domain) {
+      const host = blog.domain.trim();
+      if (host.startsWith('http')) return `${host.replace(/\/$/, '')}/site/${blog.id}/${postSlug}`;
+      return `https://${host}/site/${blog.id}/${postSlug}`;
+    }
+
     if (this.isLocalDevelopmentHost()) {
       return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
     }
