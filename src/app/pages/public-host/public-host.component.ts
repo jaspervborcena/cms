@@ -66,7 +66,9 @@ export class PublicHostComponent implements OnInit {
     }
 
     if (post) {
-      this.post = post;
+      // ensure content is hydrated from Storage
+      const hydrated = await this.cms.loadPostById(blog.id, post.id);
+      this.post = hydrated ?? post;
       this.loaded = true;
       return;
     }

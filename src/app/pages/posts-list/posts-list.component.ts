@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { CmsService } from '../../services/cms.service';
@@ -46,6 +46,13 @@ import { CmsService } from '../../services/cms.service';
 export class PostsListComponent {
   readonly cms = inject(CmsService);
   private router = inject(Router);
+
+  async ngOnInit(): Promise<void> {
+    const blog = this.cms.activeBlogSignal();
+    if (blog) {
+      await this.cms.fetchPostsForBlog(blog.id);
+    }
+  }
 
   newPost() {
     const blog = this.cms.activeBlogSignal();

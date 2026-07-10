@@ -44,11 +44,11 @@ export class PostDetailComponent {
         post = await this.service.loadPostBySlug(blogId, slug);
       }
 
-      if (post && (!post.content || post.content.trim() === '')) {
-        return await this.service.loadPostById(blogId, post.id);
-      }
+      if (!post) return null;
 
-      return post ?? null;
+      // Ensure content is hydrated from Storage if necessary
+      const hydrated = await this.service.loadPostById(blogId, post.id);
+      return hydrated ?? post;
     })
   );
 }

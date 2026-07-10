@@ -22,6 +22,7 @@ export interface Page {
   slug: string;
   excerpt?: string;
   content: string;
+  contentUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }

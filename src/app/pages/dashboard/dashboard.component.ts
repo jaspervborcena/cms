@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // header/footer/sidebar are provided at the app root layout
 import { CmsService } from '../../services/cms.service';
@@ -74,5 +74,12 @@ export class DashboardComponent {
 
   async logout(): Promise<void> {
     await this.auth.logout();
+  }
+
+  async ngOnInit(): Promise<void> {
+    const blog = this.cms.activeBlogSignal();
+    if (blog) {
+      await this.cms.fetchPostsForBlog(blog.id, 10);
+    }
   }
 }

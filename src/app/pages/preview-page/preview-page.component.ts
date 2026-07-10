@@ -75,8 +75,11 @@ export class PreviewPageComponent {
     }
 
     if (blogId && postId) {
-      this.service.loadPreviewPost(blogId, postId).then((loaded) => {
-        this.post = loaded;
+      this.service.loadPreviewPost(blogId, postId).then(async (loaded) => {
+        if (!loaded) return;
+        // ensure content is hydrated
+        const hydrated = await this.service.loadPostById(blogId, loaded.id);
+        this.post = hydrated ?? loaded;
       });
     }
   }

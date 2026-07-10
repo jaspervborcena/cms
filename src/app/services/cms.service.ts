@@ -1,5 +1,5 @@
 ﻿import { Injectable, computed, inject, signal } from '@angular/core';
-import { collection, collectionData, Firestore, orderBy, query, where, getDocs, addDoc, setDoc, doc, getDoc, updateDoc, deleteDoc } from '@angular/fire/firestore';
+import { collection, collectionData, Firestore, orderBy, query, where, getDocs, addDoc, setDoc, doc, getDoc, updateDoc, deleteDoc, limit } from '@angular/fire/firestore';
 import { Storage, getDownloadURL, ref, uploadString } from '@angular/fire/storage';
 import { catchError, map, of } from 'rxjs';
 import { Page, Post, Blog } from '../models/cms.models';
@@ -50,6 +50,9 @@ export class CmsService {
     this.loadPages();
   }
 
+  // Root public domain used for generated blog subdomains
+  private readonly rootPublicDomain = 'gameoffortunes.com';
+
   private loadBlogs(): void {
     const blogsCollection = collection(this.firestore, 'blogs');
     collectionData(query(blogsCollection, orderBy('createdAt', 'desc')), { idField: 'id' })
@@ -94,7 +97,10 @@ export class CmsService {
     const docRef = await addDoc(blogsCollection, blog as any);
     const newBlog: Blog = { ...(blog as Blog), id: docRef.id, slug: blog.slug ?? docRef.id };
 
-    await setDoc(docRef, { slug: newBlog.slug }, { merge: true });
+    // set slug and default domain to a subdomain of the public root domain
+    const defaultDomain = `${newBlog.slug}.${this.rootPublicDomain}`;
+    await setDoc(docRef, { slug: newBlog.slug, domain: defaultDomain }, { merge: true });
+    newBlog.domain = defaultDomain;
     this.activeBlogSignal.set(newBlog);
     this.blogsSignal.set([...this.blogsSignal(), newBlog]);
     return newBlog;
@@ -179,6 +185,40 @@ export class CmsService {
         catchError(() => of([] as Post[]))
       )
       .subscribe((posts) => this.postsSignal.set(posts));
+  }
+
+  /**
+   * Fetch posts for a blog directly from Firestore (no Storage hydration).
+   * If `limitCount` is provided and > 0, the query will be limited.
+   */
+  async fetchPostsForBlog(blogId: string, limitCount?: number): Promise<Post[]> {
+    const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
+    const q = limitCount && limitCount > 0
+      ? query(postsCollection, orderBy('publishedAt', 'desc'), limit(limitCount))
+      : query(postsCollection, orderBy('publishedAt', 'desc'));
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return [];
+
+    const posts = snapshot.docs.map((docSnap) => ({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), blogId } as Post));
+    // replace in-memory list for this blog with freshly fetched items
+    const others = this.postsSignal().filter((p) => p.blogId !== blogId);
+    this.postsSignal.set([...posts, ...others]);
+    return posts;
+  }
+
+  /**
+   * Fetch a post document by id from Firestore (no Storage hydration).
+   */
+  async fetchPostDocById(blogId: string, postId: string): Promise<Post | null> {
+    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    const snapshot = await getDoc(postDoc);
+    if (!snapshot.exists()) return null;
+
+    const post = { ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), blogId } as Post;
+    // update in-memory signal but do not hydrate content from storage
+    this.postsSignal.set([post, ...this.postsSignal().filter((p) => p.id !== post.id)]);
+    return post;
   }
 
   async createPost(blogId: string, data: { title: string; excerpt?: string; content?: string; category?: string; status?: 'draft' | 'published' }): Promise<Post> {
@@ -361,22 +401,18 @@ export class CmsService {
   findBlogByHostName(hostname: string): Blog | undefined {
     const normalized = hostname.toLowerCase().trim();
     const parts = normalized.split('.');
-    if (parts.length < 4) {
+    // require exactly one subdomain: slug.gameoffortunes.com
+    if (parts.length !== 3) {
       return undefined;
     }
 
-    const rootDomain = parts.slice(-3).join('.');
-    if (rootDomain !== 'cms.tovrika.com') {
+    const rootDomain = parts.slice(-2).join('.');
+    if (rootDomain !== this.rootPublicDomain) {
       return undefined;
     }
 
-    const subdomain = parts.slice(0, -3).join('.');
-    if (!subdomain) {
-      return undefined;
-    }
-
-    const slug = subdomain === 'www' ? undefined : subdomain.split('.').pop();
-    if (!slug) {
+    const slug = parts[0];
+    if (!slug || slug === 'www') {
       return undefined;
     }
 
@@ -391,8 +427,18 @@ export class CmsService {
     return `blogs/${blogId}/posts/${postId}.html`;
   }
 
+  private getPageContentPath(pageId: string): string {
+    return `pages/${pageId}.html`;
+  }
+
   private async uploadPostContent(blogId: string, postId: string, content: string): Promise<string> {
     const storageRef = ref(this.storage, this.getPostContentPath(blogId, postId));
+    await uploadString(storageRef, content, 'raw', { contentType: 'text/html' });
+    return getDownloadURL(storageRef);
+  }
+
+  private async uploadPageContent(pageId: string, content: string): Promise<string> {
+    const storageRef = ref(this.storage, this.getPageContentPath(pageId));
     await uploadString(storageRef, content, 'raw', { contentType: 'text/html' });
     return getDownloadURL(storageRef);
   }
@@ -507,7 +553,16 @@ export class CmsService {
 
     const pagesCollection = collection(this.firestore, 'pages');
     const docRef = await addDoc(pagesCollection, page as any);
-    const newPage: Page = { ...(page as Page), id: docRef.id };
+    let contentUrl: string | undefined;
+    const content = page.content ?? '';
+
+    if (content.trim().length) {
+      contentUrl = await this.uploadPageContent(docRef.id, content);
+      const pageDoc = doc(this.firestore, `pages/${docRef.id}`);
+      await updateDoc(pageDoc, { contentUrl } as any);
+    }
+
+    const newPage: Page = { ...(page as Page), id: docRef.id, contentUrl };
     this.pagesSignal.set([newPage, ...this.pagesSignal()]);
     return newPage;
   }
@@ -523,8 +578,31 @@ export class CmsService {
       updatedAt: new Date().toISOString()
     };
 
+    const updateData: any = {
+      title: updatedPage.title,
+      slug: updatedPage.slug,
+      excerpt: updatedPage.excerpt,
+      updatedAt: updatedPage.updatedAt
+    };
+
+    if (data.content !== undefined) {
+      const content = data.content ?? '';
+      updatedPage.content = content;
+
+      if (content.trim().length) {
+        const contentUrl = await this.uploadPageContent(pageId, content);
+        updateData.contentUrl = contentUrl;
+        updatedPage.contentUrl = contentUrl;
+      } else {
+        updateData.contentUrl = null;
+        updatedPage.contentUrl = undefined;
+      }
+    } else if (updatedPage.contentUrl !== undefined) {
+      updateData.contentUrl = updatedPage.contentUrl;
+    }
+
     const pageDoc = doc(this.firestore, `pages/${pageId}`);
-    await updateDoc(pageDoc, updatedPage as any);
+    await updateDoc(pageDoc, updateData as any);
     this.pagesSignal.set(this.pagesSignal().map((item) => (item.id === pageId ? updatedPage : item)));
     return updatedPage;
   }
@@ -606,6 +684,7 @@ export class CmsService {
       slug: String(item['slug'] ?? 'untitled-page'),
       excerpt: item['excerpt'] ? String(item['excerpt']) : undefined,
       content: String(item['content'] ?? ''),
+      contentUrl: item['contentUrl'] ? String(item['contentUrl']) : undefined,
       createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
       updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined
     };

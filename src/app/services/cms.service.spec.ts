@@ -40,8 +40,8 @@ describe('CmsService public URL helpers', () => {
 
     const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog' } as any;
 
-    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.cms.tovrika.com');
-    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.cms.tovrika.com/hello-world');
+    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.gameoffortunes.com');
+    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.gameoffortunes.com/hello-world');
   });
 
   it('uses the generated blog id as the slug when no slug is provided', async () => {
@@ -68,8 +68,8 @@ describe('CmsService public URL helpers', () => {
 
     const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog', domain: 'jasperblogtest' } as any;
 
-    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.cms.tovrika.com');
-    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.cms.tovrika.com/hello-world');
+    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.gameoffortunes.com');
+    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.gameoffortunes.com/hello-world');
   });
 });
 });
