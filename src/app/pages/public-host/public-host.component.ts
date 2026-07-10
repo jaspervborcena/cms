@@ -9,9 +9,17 @@ import { CmsService } from '../../services/cms.service';
   imports: [CommonModule, RouterLink],
   template: `
     <section class="public-host" *ngIf="loaded; else loading">
+      <link rel="stylesheet" [attr.href]="themeCssUrl" *ngIf="themeCssUrl">
+
       <div *ngIf="post && blog; else missing">
         <header class="site-header">
-          <div class="brand">{{ blog.name }}</div>
+          <div>
+            <p class="brand">{{ blog.name }}</p>
+            <p class="tagline">{{ blog.description || 'A simple public blog powered by your CMS.' }}</p>
+          </div>
+          <nav class="site-nav">
+            <a [routerLink]="homeLink">Home</a>
+          </nav>
         </header>
 
         <main class="site-main">
@@ -19,7 +27,7 @@ import { CmsService } from '../../services/cms.service';
             <h1>{{ post.title }}</h1>
             <p class="meta">{{ post.category }} · {{ post.publishedAt | date }}</p>
             <div [innerHTML]="post.content" class="content"></div>
-            <a [routerLink]="['/site', blog.id]">Back to site</a>
+            <a [routerLink]="homeLink">Back to site</a>
           </article>
         </main>
       </div>
@@ -38,6 +46,8 @@ export class PublicHostComponent implements OnInit {
   private readonly cms = inject(CmsService);
   post: any = null;
   blog: any = null;
+  themeCssUrl = '';
+  homeLink = '/';
   loaded = false;
 
   async ngOnInit(): Promise<void> {
@@ -59,6 +69,9 @@ export class PublicHostComponent implements OnInit {
     }
 
     this.blog = blog;
+    this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
+    this.homeLink = this.blogHostHomeLink(blog);
+
     // find published post by slug
     let post = this.cms.findPostBySlug(blog.id, slug) ?? null;
     if (!post) {
@@ -74,5 +87,14 @@ export class PublicHostComponent implements OnInit {
     }
 
     this.loaded = true;
+  }
+
+  private blogHostHomeLink(blog: any): string {
+    const host = this.cms.getPublicHostForBlog(blog);
+    if (!host) {
+      return `/site/${blog.id}`;
+    }
+
+    return `https://${host}`;
   }
 }
