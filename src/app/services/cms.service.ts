@@ -521,7 +521,7 @@ export class CmsService {
     return window.location.origin.replace(/\/$/, '');
   }
 
-  private getPublicHostForBlog(blog: Blog): string {
+  getPublicHostForBlog(blog: Blog): string {
     if (blog.domain) {
       let host = this.normalizeHost(blog.domain);
       if (!host) {
