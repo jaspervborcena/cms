@@ -38,6 +38,7 @@ export interface Blog {
   createdAt?: string;
   updatedAt?: string;
   theme?: string;
+  template?: string;
   domain?: string;
 }
 

@@ -14,15 +14,19 @@ import { Router } from '@angular/router';
       <p>Select a theme for the active blog.</p>
       <div *ngIf="cms.activeBlogSignal() as blog; else noBlog">
         <label>Theme
-          <select [(ngModel)]="selected">
-            <option value="default">Default</option>
-            <option value="minimal">Minimal</option>
-            <option value="modern">Modern</option>
-            <option value="contempo">Contempo (Left-sidebar)</option>
+          <select [(ngModel)]="selectedTheme">
+            <option *ngFor="let theme of themes" [value]="theme.id">{{ theme.label }}</option>
           </select>
         </label>
+
+        <label style="display:block; margin-top:1rem">Template
+          <select [(ngModel)]="selectedTemplate">
+            <option *ngFor="let template of templates" [value]="template.id">{{ template.label }}</option>
+          </select>
+        </label>
+
         <div style="margin-top:1rem">
-          <button class="btn" (click)="save(blog.id)">Save theme</button>
+          <button class="btn" (click)="save(blog.id)">Save settings</button>
         </div>
       </div>
       <ng-template #noBlog>
@@ -34,14 +38,26 @@ import { Router } from '@angular/router';
 export class ThemeSettingsComponent {
   readonly cms = inject(CmsService);
   private router = inject(Router);
-  selected = 'default';
+  themes = this.cms.getAvailableThemes();
+  templates = this.cms.getAvailableTemplates();
+  selectedTheme = 'default';
+  selectedTemplate = 'default';
 
-  save(blogId: string) {
-    this.cms.setBlogTheme(blogId, this.selected).then(() => {
-      // reload active blog
-      this.cms.setActiveBlogById(blogId);
-      // navigate back to dashboard
-      this.router.navigate(['/dashboard', blogId]);
-    });
+  constructor() {
+    const blog = this.cms.activeBlogSignal();
+    if (blog) {
+      this.selectedTheme = blog.theme ?? 'default';
+      this.selectedTemplate = blog.template ?? 'default';
+    }
+  }
+
+  async save(blogId: string) {
+    await Promise.all([
+      this.cms.setBlogTheme(blogId, this.selectedTheme),
+      this.cms.setBlogTemplate(blogId, this.selectedTemplate)
+    ]);
+
+    this.cms.setActiveBlogById(blogId);
+    this.router.navigate(['/dashboard', blogId]);
   }
 }

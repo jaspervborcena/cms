@@ -195,8 +195,8 @@ export class NewPostComponent implements OnInit {
       return;
     }
 
-    const navigatePublished = (slug: string) => {
-      window.open(this.cms.getPublicPostUrl(blog, slug), '_blank');
+    const navigatePublished = () => {
+      window.open(this.cms.getPublicSiteUrl(blog), '_blank');
     };
 
     const { title, excerpt, content } = this.form.getRawValue();
@@ -211,14 +211,14 @@ export class NewPostComponent implements OnInit {
           status: 'published'
         });
         if (updated) {
-          navigatePublished(updated.slug);
+          navigatePublished();
         }
         return;
       }
 
       const created = await this.cms.createPost(blog.id, { title, excerpt, content, status: 'published' });
       this.currentPost = created;
-      navigatePublished(created.slug);
+      navigatePublished();
     } catch (error: any) {
       this.saveError.set(error?.message ?? 'Unable to publish post. Make sure you are online and connected to Firestore.');
     }

@@ -20,17 +20,11 @@ export class AppComponent {
   readonly router = inject(Router);
   readonly cms = inject(CmsService);
 
-  private readonly redirectToBlogHome = effect(() => {
-    const blog = this.cms.findBlogByHostName(window.location.hostname);
-    if (blog && this.currentUrl === '/') {
-      this.router.navigate(['/site', blog.id]);
-    }
-  });
-
   private get currentUrl(): string {
     // ignore fragment and query params when computing layout decisions
-    const raw = this.router.url || '';
-    return raw.split('?')[0].split('#')[0];
+    const raw = this.router.url || '/';
+    const normalized = raw.split('?')[0].split('#')[0];
+    return normalized === '' ? '/' : normalized;
   }
 
   get isPreviewRoute(): boolean {

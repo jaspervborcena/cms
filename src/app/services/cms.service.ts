@@ -69,6 +69,7 @@ export class CmsService {
             createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
             updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined,
             theme: item['theme'] ? String(item['theme']) : 'default',
+            template: item['template'] ? String(item['template']) : 'default',
             domain: item['domain'] ? String(item['domain']) : undefined
           } as Blog))
         ),
@@ -89,7 +90,8 @@ export class CmsService {
       ownerUid: data.ownerUid ?? null,
       createdAt: now,
       updatedAt: now,
-      theme: 'default'
+      theme: 'default',
+      template: 'default'
     };
 
     if (requestedSlug) {
@@ -102,14 +104,15 @@ export class CmsService {
 
     // set slug and default domain to a subdomain of the public root domain
     const defaultDomain = `${newBlog.slug}.${this.rootPublicDomain}`;
-    await setDoc(docRef, { slug: newBlog.slug, domain: defaultDomain }, { merge: true });
+    await setDoc(docRef, { slug: newBlog.slug, domain: defaultDomain, template: 'default' }, { merge: true });
     newBlog.domain = defaultDomain;
+    newBlog.template = 'default';
     this.activeBlogSignal.set(newBlog);
     this.blogsSignal.set([...this.blogsSignal(), newBlog]);
     return newBlog;
   }
 
-  async updateBlog(blogId: string, data: Partial<Pick<Blog, 'name' | 'slug' | 'description' | 'category' | 'theme' | 'domain' | 'ownerUid'>>): Promise<Blog | null> {
+  async updateBlog(blogId: string, data: Partial<Pick<Blog, 'name' | 'slug' | 'description' | 'category' | 'theme' | 'template' | 'domain' | 'ownerUid'>>): Promise<Blog | null> {
     const blog = this.blogsSignal().find((item) => item.id === blogId);
     if (!blog) return null;
 
@@ -118,6 +121,7 @@ export class CmsService {
       ...data,
       slug: data.slug ? this.slugify(data.slug) : blog.slug,
       theme: data.theme ?? blog.theme ?? 'default',
+      template: data.template ?? blog.template ?? 'default',
       updatedAt: new Date().toISOString()
     };
 
@@ -169,6 +173,7 @@ export class CmsService {
           createdAt: data['createdAt'] ? String(data['createdAt']) : undefined,
           updatedAt: data['updatedAt'] ? String(data['updatedAt']) : undefined,
           theme: data['theme'] ? String(data['theme']) : 'default',
+          template: data['template'] ? String(data['template']) : 'default',
           domain: data['domain'] ? String(data['domain']) : undefined
         } as Blog;
 
@@ -672,6 +677,33 @@ export class CmsService {
     if (current && current.id === blogId) {
       this.activeBlogSignal.set({ ...current, theme });
     }
+  }
+
+  async setBlogTemplate(blogId: string, template: string): Promise<void> {
+    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+    await setDoc(blogDoc, { template }, { merge: true });
+
+    const current = this.activeBlogSignal();
+    if (current && current.id === blogId) {
+      this.activeBlogSignal.set({ ...current, template });
+    }
+  }
+
+  getBlogTemplateId(blog?: Blog): string {
+    return blog?.template || 'default';
+  }
+
+  getAvailableThemes(): Array<{ id: string; label: string }> {
+    return [
+      { id: 'default', label: 'Default' },
+      { id: 'minimal', label: 'Minimal' },
+      { id: 'modern', label: 'Modern' },
+      { id: 'contempo', label: 'Contempo' }
+    ];
+  }
+
+  getAvailableTemplates(): Array<{ id: string; label: string }> {
+    return [{ id: 'default', label: 'Default' }];
   }
 
   async setBlogDomain(blogId: string, domain: string): Promise<void> {

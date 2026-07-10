@@ -2,23 +2,36 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
+import { CmsService } from '../../services/cms.service';
+import { Blog, Page, Post } from '../../models/cms.models';
+import { DefaultSiteTemplateComponent } from '../default-site-template/default-site-template.component';
 
 @Component({
   selector: 'app-landing',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, DefaultSiteTemplateComponent],
   template: `
-    <section *ngIf="!focusPlans" class="hero">
-      <p class="eyebrow">Tovrika CMS</p>
-      <h1>Build your app with a polished editorial experience.</h1>
-      <p class="lead">Launch a public marketing site, then switch to a protected dashboard for posts, pages, and workflow tools.</p>
-      <div class="actions">
-        <a routerLink="/register" class="btn primary">Register</a>
-        <a routerLink="/login" class="btn secondary">Login</a>
-      </div>
-    </section>
+    <ng-container *ngIf="blog; else genericLanding">
+      <app-default-site-template
+        [blog]="blog"
+        [pages]="pages"
+        [publishedPosts]="publishedPosts"
+        [themeCssUrl]="themeCssUrl"
+      ></app-default-site-template>
+    </ng-container>
 
-    <section *ngIf="!focusPlans" class="grid">
+    <ng-template #genericLanding>
+      <section *ngIf="!focusPlans" class="hero">
+        <p class="eyebrow">Tovrika CMS</p>
+        <h1>Build your app with a polished editorial experience.</h1>
+        <p class="lead">Launch a public marketing site, then switch to a protected dashboard for posts, pages, and workflow tools.</p>
+        <div class="actions">
+          <a routerLink="/register" class="btn primary">Register</a>
+          <a routerLink="/login" class="btn secondary">Login</a>
+        </div>
+      </section>
+
+      <section *ngIf="!focusPlans" class="grid">
       <article class="card featured">
         <h2>Create an account</h2>
         <p>Unlock the full potential of Tovrika CMS by registering today. Once you sign up, you gain access to a protected dashboard where you can manage posts, pages, and workflows with ease. Our editorial tools are designed to help you draft, review, and publish content seamlessly, while keeping everything organized in one place. Registration is the gateway to building a professional online presence that grows with your brand.</p>
@@ -88,8 +101,14 @@ import { AuthService } from '../../services/auth.service';
 })
 export class LandingComponent {
   readonly auth = inject(AuthService);
+  readonly cms = inject(CmsService);
   private route = inject(ActivatedRoute);
   focusPlans = false;
+
+  blog: Blog | null = null;
+  pages: Page[] = [];
+  publishedPosts: Post[] = [];
+  themeCssUrl = '';
 
   constructor() {
     this.route.fragment.subscribe((f) => {
@@ -102,6 +121,14 @@ export class LandingComponent {
         }, 50);
       }
     });
+
+    const blog = this.cms.findBlogByHostName(window.location.hostname);
+    if (blog) {
+      this.blog = blog;
+      this.pages = this.cms.pagesSignal();
+      this.publishedPosts = this.cms.postsSignal().filter((post) => post.blogId === blog.id && post.status === 'published');
+      this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
+    }
   }
 }
 
