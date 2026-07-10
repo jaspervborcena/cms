@@ -6,6 +6,7 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { AdminNavComponent } from './components/admin-nav/admin-nav.component';
 import { AuthService } from './services/auth.service';
 import { CmsService } from './services/cms.service';
+import { Blog } from './models/cms.models';
 
 @Component({
   selector: 'app-root',
@@ -47,6 +48,6 @@ export class AppComponent {
 
   get isPublicRoute(): boolean {
     const url = this.currentUrl;
-    return url === '/' || url === '/login' || url === '/register' || this.isBlogHostRoute;
+    return url === '/' || url === '/login' || url === '/register';
   }
 }
