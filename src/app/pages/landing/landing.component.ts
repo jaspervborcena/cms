@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
@@ -122,13 +122,21 @@ export class LandingComponent {
       }
     });
 
-    const blog = this.cms.findBlogByHostName(window.location.hostname);
-    if (blog) {
+    effect(() => {
+      const blog = this.cms.findBlogByHostName(window.location.hostname);
+      if (!blog) {
+        this.blog = null;
+        this.pages = [];
+        this.publishedPosts = [];
+        this.themeCssUrl = '';
+        return;
+      }
+
       this.blog = blog;
       this.pages = this.cms.pagesSignal();
       this.publishedPosts = this.cms.postsSignal().filter((post) => post.blogId === blog.id && post.status === 'published');
       this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
-    }
+    });
   }
 }
 
