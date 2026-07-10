@@ -517,7 +517,11 @@ export class CmsService {
   getPublicSiteUrl(blog: Blog): string {
     // If the blog has an explicit domain, prefer it for published URLs.
     if (blog && blog.domain) {
-      const host = blog.domain.trim();
+      let host = blog.domain.trim();
+      // If domain looks like a bare slug (no dot), append the root public domain.
+      if (!host.includes('.')) {
+        host = `${host}.${this.rootPublicDomain}`;
+      }
       if (host.startsWith('http')) return `${host.replace(/\/$/, '')}/site/${blog.id}`;
       return `https://${host}/site/${blog.id}`;
     }
@@ -533,7 +537,10 @@ export class CmsService {
   getPublicPostUrl(blog: Blog, postSlug: string): string {
     // Prefer explicit blog domain for published post links
     if (blog && blog.domain) {
-      const host = blog.domain.trim();
+      let host = blog.domain.trim();
+      if (!host.includes('.')) {
+        host = `${host}.${this.rootPublicDomain}`;
+      }
       if (host.startsWith('http')) return `${host.replace(/\/$/, '')}/site/${blog.id}/${postSlug}`;
       return `https://${host}/site/${blog.id}/${postSlug}`;
     }
