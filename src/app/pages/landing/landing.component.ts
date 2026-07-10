@@ -123,7 +123,11 @@ export class LandingComponent {
     });
 
     effect(() => {
+      const blogs = this.cms.blogsSignal();
+      const pages = this.cms.pagesSignal();
+      const posts = this.cms.postsSignal();
       const blog = this.cms.findBlogByHostName(window.location.hostname);
+
       if (!blog) {
         this.blog = null;
         this.pages = [];
@@ -133,8 +137,8 @@ export class LandingComponent {
       }
 
       this.blog = blog;
-      this.pages = this.cms.pagesSignal();
-      this.publishedPosts = this.cms.postsSignal().filter((post) => post.blogId === blog.id && post.status === 'published');
+      this.pages = pages.filter((page) => true);
+      this.publishedPosts = posts.filter((post) => post.blogId === blog.id && post.status === 'published');
       this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
     });
   }
