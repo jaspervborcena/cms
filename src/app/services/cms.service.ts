@@ -81,10 +81,9 @@ export class CmsService {
     const now = new Date().toISOString();
     const requestedSlug = (data.slug ?? '').trim();
 
-    const blog: Omit<Blog, 'id'> = {
+    const blog: any = {
       uid: this.auth.authSignal()?.uid ?? undefined,
       name: data.name,
-      slug: requestedSlug ? this.slugify(requestedSlug) : undefined,
       description: data.description,
       category: data.category,
       ownerUid: data.ownerUid ?? null,
@@ -92,6 +91,10 @@ export class CmsService {
       updatedAt: now,
       theme: 'default'
     };
+
+    if (requestedSlug) {
+      blog.slug = this.slugify(requestedSlug);
+    }
 
     const blogsCollection = collection(this.firestore, 'blogs');
     const docRef = await addDoc(blogsCollection, blog as any);
