@@ -71,4 +71,24 @@ describe('CmsService public URL helpers', () => {
     expect(service.getPublicSiteUrl(blog)).toBe('https://jasperblogtest.gameoffortunes.com');
     expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://jasperblogtest.gameoffortunes.com/hello-world');
   });
+
+  it('uses the root public domain for a bare slug blog domain', () => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        hostname: 'app.example.com',
+        host: 'app.example.com',
+        origin: 'https://app.example.com',
+        protocol: 'https:',
+        port: '',
+        href: 'https://app.example.com/'
+      }
+    });
+
+    const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog', domain: 'hello' } as any;
+
+    expect(service.getPublicSiteUrl(blog)).toBe('https://hello.gameoffortunes.com');
+    expect(service.getPublicPostUrl(blog, 'popo')).toBe('https://hello.gameoffortunes.com/popo');
+  });
 });

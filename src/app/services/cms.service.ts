@@ -520,7 +520,7 @@ export class CmsService {
     if (blog.domain) {
       let host = this.normalizeHost(blog.domain);
       if (!host) {
-        return this.getCurrentOrigin();
+        return window.location.host;
       }
 
       if (!host.includes('.') && !host.includes(':')) {
@@ -534,7 +534,7 @@ export class CmsService {
       return `${this.normalizeHost(blog.slug)}.${this.rootPublicDomain}`;
     }
 
-    return this.getCurrentOrigin();
+    return window.location.host;
   }
 
   private buildPublicUrl(blog: Blog, path: string): string {
@@ -547,12 +547,11 @@ export class CmsService {
       return this.getCurrentOrigin();
     }
 
-    const host = this.getPublicHostForBlog(blog);
     if (this.isLocalDevelopmentHost() && !blog.domain) {
       return this.getLocalPreviewUrl(`/site/${blog.id}`);
     }
 
-    return `https://${host}`;
+    return this.buildPublicUrl(blog, '');
   }
 
   getPublicPostUrl(blog: Blog, postSlug: string): string {
@@ -560,12 +559,11 @@ export class CmsService {
       return this.getCurrentOrigin();
     }
 
-    const host = this.getPublicHostForBlog(blog);
     if (this.isLocalDevelopmentHost() && !blog.domain) {
       return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
     }
 
-    return `https://${host}/${postSlug}`;
+    return this.buildPublicUrl(blog, `/${postSlug}`);
   }
 
   getThemeCssUrl(themeId?: string): string {
