@@ -68,8 +68,7 @@ describe('CmsService public URL helpers', () => {
 
     const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog', domain: 'jasperblogtest' } as any;
 
-    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.gameoffortunes.com');
-    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.gameoffortunes.com/hello-world');
+    expect(service.getPublicSiteUrl(blog)).toBe('https://jasperblogtest.gameoffortunes.com');
+    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://jasperblogtest.gameoffortunes.com/hello-world');
   });
-});
 });

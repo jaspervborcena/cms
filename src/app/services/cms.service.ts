@@ -412,10 +412,16 @@ export class CmsService {
   }
 
   findBlogByHostName(hostname: string): Blog | undefined {
-    const normalized = hostname.toLowerCase().trim();
+    const normalized = hostname.toLowerCase().trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
+
+    // Exact domain match first for configured custom or generated domains.
+    const byDomain = this.blogsSignal().find(
+      (b) => b.domain && b.domain.trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '').toLowerCase() === normalized
+    );
+    if (byDomain) return byDomain;
+
     const parts = normalized.split('.');
-    // require exactly one subdomain: slug.gameoffortunes.com
-    if (parts.length !== 3) {
+    if (parts.length < 3) {
       return undefined;
     }
 
@@ -424,12 +430,22 @@ export class CmsService {
       return undefined;
     }
 
-    const slug = parts[0];
-    if (!slug || slug === 'www') {
+    let slug: string | undefined;
+    if (parts.length === 3) {
+      slug = parts[0];
+    } else if (parts.length === 4 && parts[0] === 'www') {
+      slug = parts[1];
+    }
+
+    if (!slug) {
       return undefined;
     }
 
     return this.findBlogByHostSlug(slug);
+  }
+
+  private normalizeHost(host: string): string {
+    return host.trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
   }
 
   private slugify(text: string): string {
@@ -501,56 +517,55 @@ export class CmsService {
   }
 
   private getPublicHostForBlog(blog: Blog): string {
-    if (!blog.domain) {
-      return this.getCurrentOrigin();
+    if (blog.domain) {
+      let host = this.normalizeHost(blog.domain);
+      if (!host) {
+        return this.getCurrentOrigin();
+      }
+
+      if (!host.includes('.') && !host.includes(':')) {
+        host = `${host}.${this.rootPublicDomain}`;
+      }
+
+      return host;
     }
 
-    const host = blog.domain.trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
-    if (!host) {
-      return this.getCurrentOrigin();
+    if (blog.slug) {
+      return `${this.normalizeHost(blog.slug)}.${this.rootPublicDomain}`;
     }
 
-    const looksLikeFqdn = host.includes('.') || host.includes(':');
-    return looksLikeFqdn ? host : this.getCurrentOrigin();
+    return this.getCurrentOrigin();
+  }
+
+  private buildPublicUrl(blog: Blog, path: string): string {
+    const host = this.getPublicHostForBlog(blog);
+    return `https://${host}${path}`;
   }
 
   getPublicSiteUrl(blog: Blog): string {
-    // If the blog has an explicit domain, prefer it for published URLs.
-    if (blog && blog.domain) {
-      let host = blog.domain.trim();
-      // If domain looks like a bare slug (no dot), append the root public domain.
-      if (!host.includes('.')) {
-        host = `${host}.${this.rootPublicDomain}`;
-      }
-      if (host.startsWith('http')) return `${host.replace(/\/$/, '')}/site/${blog.id}`;
-      return `https://${host}/site/${blog.id}`;
+    if (!blog) {
+      return this.getCurrentOrigin();
     }
 
-    if (this.isLocalDevelopmentHost()) {
+    const host = this.getPublicHostForBlog(blog);
+    if (this.isLocalDevelopmentHost() && !blog.domain) {
       return this.getLocalPreviewUrl(`/site/${blog.id}`);
     }
 
-    const host = this.getPublicHostForBlog(blog);
-    return host.startsWith('http') ? `${host}/site/${blog.id}` : `https://${host}/site/${blog.id}`;
+    return `https://${host}`;
   }
 
   getPublicPostUrl(blog: Blog, postSlug: string): string {
-    // Prefer explicit blog domain for published post links
-    if (blog && blog.domain) {
-      let host = blog.domain.trim();
-      if (!host.includes('.')) {
-        host = `${host}.${this.rootPublicDomain}`;
-      }
-      if (host.startsWith('http')) return `${host.replace(/\/$/, '')}/site/${blog.id}/${postSlug}`;
-      return `https://${host}/site/${blog.id}/${postSlug}`;
-    }
-
-    if (this.isLocalDevelopmentHost()) {
-      return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
+    if (!blog) {
+      return this.getCurrentOrigin();
     }
 
     const host = this.getPublicHostForBlog(blog);
-    return host.startsWith('http') ? `${host}/site/${blog.id}/${postSlug}` : `https://${host}/site/${blog.id}/${postSlug}`;
+    if (this.isLocalDevelopmentHost() && !blog.domain) {
+      return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
+    }
+
+    return `https://${host}/${postSlug}`;
   }
 
   getThemeCssUrl(themeId?: string): string {
