@@ -20,7 +20,7 @@ import { CmsService } from '../../services/cms.service';
 
           <div class="preview-actions">
             <a [routerLink]="['/posts', 'edit', post.id]" class="ghost-btn">Back to editor</a>
-            <a *ngIf="blog" [routerLink]="['/site', blog.id]" class="btn">Publish</a>
+<a *ngIf="blog" [href]="service.getPublicSiteUrl(blog)" target="_blank" class="btn">Publish</a>
           </div>
         </header>
 
