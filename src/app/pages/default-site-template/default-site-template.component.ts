@@ -13,32 +13,20 @@ import { CmsService } from '../../services/cms.service';
       <link rel="stylesheet" [attr.href]="themeCssUrl">
 
       <header class="site-header">
-        <div class="top-bar">
-          <nav class="top-nav">
-            <a href="/">Home</a>
-            <ng-container *ngFor="let page of primaryMenuPages">
-              <a [routerLink]="['/pages', page.slug]">{{ page.title }}</a>
-            </ng-container>
-          </nav>
+        <nav class="primary-nav">
+          <a [routerLink]="['/site', blog?.id]" class="nav-link">Home</a>
+          <ng-container *ngFor="let page of primaryMenuPages">
+            <a [routerLink]="['/pages', page.slug]" class="nav-link">{{ page.title }}</a>
+          </ng-container>
+        </nav>
+
+        <div class="brand-hero">
+          <p class="hero-label">PLAY</p>
+          <p class="hero-title">{{ blog?.name || 'play' }}</p>
         </div>
 
-        <div class="brand-row">
-          <div class="brand-content">
-            <div class="logo">{{ blog?.name }}</div>
-            <p class="tagline">{{ blog?.description || 'A bold restaurant-style blog with rich page navigation.' }}</p>
-          </div>
-          <button class="btn ghost">Update</button>
-        </div>
-
-        <div class="nav-row">
-          <div class="home-icon">
-            <a [routerLink]="['/site', blog?.id]">🏠</a>
-          </div>
-          <nav class="main-nav">
-            <ng-container *ngFor="let page of secondaryMenuPages">
-              <a [routerLink]="['/pages', page.slug]">{{ page.title }}</a>
-            </ng-container>
-          </nav>
+        <div class="hero-action-row">
+          <button class="btn action-btn">Update</button>
           <div class="search-wrap">
             <input type="search" placeholder="Search" />
           </div>
@@ -46,35 +34,36 @@ import { CmsService } from '../../services/cms.service';
       </header>
 
       <main class="site-main">
-        <section class="announcement-bar">
-          <span class="badge">Update</span>
+        <section class="announcement-card">
+          <h2>Update</h2>
           <p>Latest news, featured stories, and menu updates are highlighted here.</p>
         </section>
 
-        <section class="content-layout">
-          <div class="content-left">
-            <section class="posts-section">
-              <div class="posts-header">
-                <h2>Recent posts</h2>
-                <a [routerLink]="['/site', blog?.id]" class="view-more">View more</a>
-              </div>
-              <article class="featured-post" *ngIf="featuredPost">
-                <h3>{{ featuredPost.title }}</h3>
-                <p>{{ featuredPost.excerpt }}</p>
-                <a [routerLink]="['/site', blog?.id, featuredPost.slug]" class="read-more">Read more</a>
-              </article>
-              <ul class="post-list">
-                <li *ngFor="let post of otherPosts">
-                  <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
-                </li>
-              </ul>
-            </section>
-          </div>
+        <section class="content-grid">
+          <section class="recent-section">
+            <div class="recent-header">
+              <h2>Recent posts</h2>
+              <a [routerLink]="['/site', blog?.id]" class="view-more">View more</a>
+            </div>
+
+            <article class="featured-card" *ngIf="featuredPost">
+              <h3>{{ featuredPost.title }}</h3>
+              <p>{{ featuredPost.excerpt }}</p>
+              <a [routerLink]="['/site', blog?.id, featuredPost.slug]" class="read-more">Read more</a>
+            </article>
+
+            <ul class="post-list">
+              <li *ngFor="let post of otherPosts">
+                <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
+              </li>
+              <li *ngIf="otherPosts.length === 0" class="empty-state">No additional posts yet.</li>
+            </ul>
+          </section>
 
           <aside class="sidebar-panel">
             <div class="widget">
               <h3>Facebook</h3>
-              <a href="https://facebook.com" target="_blank">Visit our Facebook Page</a>
+              <a href="https://facebook.com" target="_blank" rel="noopener">Visit our Facebook Page</a>
             </div>
             <div class="widget">
               <h3>Categories</h3>
@@ -83,52 +72,60 @@ import { CmsService } from '../../services/cms.service';
             <div class="widget">
               <h3>Recent Pages</h3>
               <ul>
-                <li *ngFor="let page of pages"><a [routerLink]="['/pages', page.slug]">{{ page.title }}</a></li>
+                <li *ngFor="let page of pages">
+                  <a [routerLink]="['/pages', page.slug]">{{ page.title }}</a>
+                </li>
+                <li *ngIf="pages.length === 0">No pages yet.</li>
               </ul>
             </div>
           </aside>
         </section>
       </main>
-
-      <footer class="site-footer">
-        <p>© {{ blog?.name }} · Built on gameoffortunes.com</p>
-      </footer>
     </section>
   `,
   styles: [
-    `.site-page { padding: 0; max-width: 1200px; margin: 0 auto; }`,
-    `.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.5rem 1.5rem 0; border-bottom: 1px solid rgba(15, 23, 42, 0.08); }`,
-    `.brand-group { max-width: 560px; }`,
-    `.logo { font-size: 1.35rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #111827; }`,
-    `.tagline { margin: 0.5rem 0 0; color: #475569; line-height: 1.7; max-width: 540px; }`,
-    `.site-nav { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }`,
-    `.site-nav a { color: #1d4ed8; text-decoration: none; font-weight: 600; }`,
-    `.site-nav a:hover { text-decoration: underline; }`,
-    `.hero-panel { display: grid; gap: 1.5rem; align-items: center; padding: 3rem 1.5rem; background: #f8fafc; }`,
-    `.eyebrow { margin: 0 0 1rem 0; color: #1d4ed8; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 0.18em; font-weight: 700; }`,
-    `.hero-panel h1 { margin: 0 0 1rem 0; font-size: clamp(2.5rem, 4vw, 4.25rem); line-height: 1.05; color: #111827; }`,
-    `.hero-copy { margin: 0; max-width: 720px; color: #475569; font-size: 1.05rem; line-height: 1.8; }`,
-    `.hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }`,
-    `.btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.9rem 1.4rem; border-radius: 999px; font-weight: 700; text-decoration: none; }`,
-    `.primary { background: #111827; color: white; }`,
-    `.secondary { background: white; color: #1d4ed8; border: 1px solid #dbeafe; }`,
-    `.content-columns { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; padding: 0 1.5rem; margin-top: 1rem; }`,
-    `.featured-section { background: white; padding: 1.75rem; border-radius: 1.25rem; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06); }`,
-    `.section-head { display: flex; flex-direction: column; gap: 0.5rem; }`,
-    `.section-label { text-transform: uppercase; color: #2563eb; font-size: 0.75rem; letter-spacing: 0.2em; font-weight: 700; }`,
-    `.featured-section h2 { margin: 0; font-size: 2rem; color: #111827; }`,
-    `.section-copy { margin: 1rem 0 0; color: #475569; line-height: 1.75; }`,
-    `.read-more { display: inline-flex; margin-top: 1.5rem; color: #1d4ed8; font-weight: 700; text-decoration: none; }`,
-    `.sidebar-panel { display: grid; gap: 1.5rem; }`,
-    `.widget { background: white; padding: 1.25rem 1.5rem; border-radius: 1rem; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06); }`,
+    `.site-page { padding: 0; max-width: 1200px; margin: 0 auto; background: #f4f6fb; min-height: 100vh; font-family: Inter, system-ui, sans-serif; }`,
+    `.site-header { display: grid; grid-template-columns: 1fr minmax(320px, 1.5fr) minmax(260px, 1fr); gap: 1rem; align-items: center; padding: 1.75rem 1.5rem 0; }`,
+    `.primary-nav { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }`,
+    `.nav-link { color: #1d4ed8; text-decoration: none; font-weight: 700; font-size: 0.95rem; }`,
+    `.nav-link:hover { text-decoration: underline; }`,
+    `.brand-hero { text-align: center; }`,
+    `.hero-label { margin: 0; font-size: 0.75rem; letter-spacing: 0.35em; text-transform: uppercase; color: #1d4ed8; }`,
+    `.hero-title { margin: 0.4rem 0 0; font-size: clamp(2.5rem, 4vw, 4.5rem); line-height: 1; font-weight: 900; color: #111827; }`,
+    `.hero-action-row { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; }`,
+    `.btn { border: none; border-radius: 999px; font-weight: 700; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }`,
+    `.action-btn { padding: 0.95rem 1.8rem; background: white; color: #111827; border: 1px solid #111827; box-shadow: 0 10px 30px rgba(17, 24, 39, 0.08); }`,
+    `.action-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 40px rgba(17, 24, 39, 0.12); }`,
+    `.search-wrap { display: flex; align-items: center; justify-content: flex-end; }`,
+    `.search-wrap input { width: 100%; max-width: 220px; padding: 0.85rem 1rem; border-radius: 999px; border: 1px solid #cbd5e1; background: white; color: #111827; }`,
+    `.site-main { padding: 1.5rem; }`,
+    `.announcement-card { background: white; padding: 1.5rem 1.75rem; border-radius: 1.25rem; box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06); border: 1px solid rgba(15, 23, 42, 0.06); margin-bottom: 1.5rem; }`,
+    `.announcement-card h2 { margin: 0 0 0.75rem 0; font-size: 1.4rem; }`,
+    `.announcement-card p { margin: 0; color: #475569; line-height: 1.8; }`,
+    `.content-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 1.5rem; }`,
+    `.recent-section { display: grid; gap: 1.25rem; }`,
+    `.recent-header { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }`,
+    `.recent-header h2 { margin: 0; font-size: 1.5rem; }`,
+    `.view-more { color: #1d4ed8; text-decoration: none; font-weight: 700; }`,
+    `.view-more:hover { text-decoration: underline; }`,
+    `.featured-card { background: white; padding: 1.5rem; border-radius: 1.25rem; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06); }`,
+    `.featured-card h3 { margin: 0 0 0.85rem 0; font-size: 1.35rem; }`,
+    `.featured-card p { margin: 0; color: #475569; line-height: 1.8; }`,
+    `.post-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.85rem; }`,
+    `.post-list li { background: white; border: 1px solid #e5e7eb; border-radius: 1rem; padding: 1rem 1.15rem; }`,
+    `.post-list a { color: #111827; text-decoration: none; font-weight: 700; }`,
+    `.post-list a:hover { text-decoration: underline; }`,
+    `.empty-state { color: #6b7280; padding: 1rem; border-radius: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; }`,
+    `.sidebar-panel { display: grid; gap: 1rem; }`,
+    `.widget { background: white; padding: 1.25rem 1.5rem; border-radius: 1rem; box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06); border: 1px solid rgba(15, 23, 42, 0.08); }`,
     `.widget h3 { margin: 0 0 0.75rem 0; font-size: 1rem; }`,
     `.widget a { color: #1d4ed8; text-decoration: none; }`,
-    `.widget p { margin: 0; color: #475569; }`,
-    `.widget ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.65rem; }`,
-    `.widget li a { color: #111827; text-decoration: none; }`,
-    `.site-footer { padding: 2rem 1.5rem; color: #6b7280; text-align: center; background: #f8fafc; }`,
-    `@media (max-width: 960px) { .content-layout { grid-template-columns: 1fr; } .nav-row { flex-direction: column; align-items: stretch; } .search-wrap { width: 100%; } .search-wrap input { width: 100%; } }`,
-    `@media (max-width: 720px) { .brand-row, .nav-row { flex-direction: column; align-items: stretch; } .top-nav { justify-content: center; } .site-page { padding: 0; } .site-main { padding: 1rem; } }`
+    `.widget a:hover { text-decoration: underline; }`,
+    `.widget p { margin: 0; color: #475569; line-height: 1.75; }`,
+    `.widget ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }`,
+    `.widget li { margin: 0; }`,
+    `@media (max-width: 980px) { .site-header { grid-template-columns: 1fr; text-align: center; } .hero-action-row { justify-content: center; } .search-wrap { justify-content: center; } .content-grid { grid-template-columns: 1fr; } }`,
+    `@media (max-width: 640px) { .primary-nav { justify-content: center; } .hero-action-row { flex-direction: column; gap: 0.75rem; } .search-wrap input { max-width: 100%; } }`
   ]
 })
 export class DefaultSiteTemplateComponent {
