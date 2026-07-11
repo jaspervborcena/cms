@@ -6,6 +6,7 @@ import { OnboardingComponent } from './pages/onboarding/onboarding.component';
 import { PreviewPageComponent } from './pages/preview-page/preview-page.component';
 import { SitePageComponent } from './pages/site-page/site-page.component';
 import { PageDetailComponent } from './pages/page-detail/page-detail.component';
+import { PagesPageComponent } from './pages/pages-page/pages-page.component';
 import { PostDetailComponent } from './pages/post-detail/post-detail.component';
 import { PublicHostComponent } from './pages/public-host/public-host.component';
 import { authGuard } from './guards/auth.guard';
@@ -21,6 +22,7 @@ export const routes: Routes = [
   { path: 'preview/:blogId/:postId', component: PreviewPageComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'site/:blogId', component: SitePageComponent },
   { path: 'site/:blogId/:slug', component: PostDetailComponent },
+  { path: 'pages', component: PagesPageComponent },
   { path: 'pages/:slug', component: PageDetailComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/:blogId', component: DashboardComponent, canActivate: [authGuard, ensureBlogGuard] },

@@ -23,6 +23,7 @@ export interface Page {
   excerpt?: string;
   content: string;
   contentUrl?: string;
+  blogId?: string;
   createdAt?: string;
   updatedAt?: string;
 }

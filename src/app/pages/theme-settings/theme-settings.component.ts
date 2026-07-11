@@ -40,14 +40,14 @@ export class ThemeSettingsComponent {
   private router = inject(Router);
   themes = this.cms.getAvailableThemes();
   templates = this.cms.getAvailableTemplates();
-  selectedTheme = 'default';
-  selectedTemplate = 'default';
+  selectedTheme = this.cms.defaultTheme;
+  selectedTemplate = this.cms.defaultTemplate;
 
   constructor() {
     const blog = this.cms.activeBlogSignal();
     if (blog) {
-      this.selectedTheme = blog.theme ?? 'default';
-      this.selectedTemplate = blog.template ?? 'default';
+      this.selectedTheme = blog.theme ?? this.cms.defaultTheme;
+      this.selectedTemplate = blog.template ?? this.cms.defaultTemplate;
     }
   }
 

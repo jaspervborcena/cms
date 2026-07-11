@@ -34,7 +34,8 @@ export class PageDetailComponent {
         return of(null);
       }
 
-      const page = this.service.pagesSignal().find((item) => item.slug === slug);
+      const blog = this.service.hostBlogSignal();
+      const page = this.service.pagesSignal().find((item) => item.slug === slug && (!blog || item.blogId === blog.id));
       return of(page ?? null);
     })
   );

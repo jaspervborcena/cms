@@ -145,7 +145,7 @@ export class LandingComponent {
       }
 
       this.blog = blog;
-      this.pages = pages;
+      this.pages = pages.filter((page) => page.blogId === blog.id);
       this.publishedPosts = posts.filter((post) => post.blogId === blog.id && post.status === 'published');
       this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
       this.loadingBlogHost = false;

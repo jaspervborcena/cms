@@ -32,6 +32,22 @@ export class CmsService {
     return this.postsSignal().filter((post) => post.blogId === blog.id && post.status === 'published');
   });
 
+  private readonly primaryPageOrder = ['data-privacy', 'about'];
+
+  isPrimaryMenuPage(page: Page): boolean {
+    return this.primaryPageOrder.includes(page.slug.toLowerCase());
+  }
+
+  getPrimaryMenuPages(pages: Page[]): Page[] {
+    return pages
+      .filter((page) => this.isPrimaryMenuPage(page))
+      .sort((a, b) => this.primaryPageOrder.indexOf(a.slug.toLowerCase()) - this.primaryPageOrder.indexOf(b.slug.toLowerCase()));
+  }
+
+  getSecondaryMenuPages(pages: Page[]): Page[] {
+    return pages.filter((page) => !this.isPrimaryMenuPage(page));
+  }
+
   readonly draftPostsSignal = computed(() => {
     const blog = this.activeBlogSignal();
     if (!blog) return [] as Post[];
@@ -46,11 +62,26 @@ export class CmsService {
       .slice(0, 3)
   );
 
+  readonly blogPagesSignal = computed(() => {
+    const blog = this.activeBlogSignal();
+    if (!blog) return [] as Page[];
+    return this.pagesSignal().filter((page) => page.blogId === blog.id);
+  });
+
+  readonly hostBlogPagesSignal = computed(() => {
+    const blog = this.hostBlogSignal();
+    if (!blog) return [] as Page[];
+    return this.pagesSignal().filter((page) => page.blogId === blog.id);
+  });
+
   constructor() {
     this.loadBlogs();
     this.loadPosts();
     this.loadPages();
   }
+
+  readonly defaultTheme = 'default';
+  readonly defaultTemplate = 'default';
 
   // Root public domain used for generated blog subdomains
   private readonly rootPublicDomain = 'gameoffortunes.com';
@@ -70,8 +101,8 @@ export class CmsService {
             ownerUid: item['ownerUid'] ? String(item['ownerUid']) : null,
             createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
             updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined,
-            theme: item['theme'] ? String(item['theme']) : 'default',
-            template: item['template'] ? String(item['template']) : 'default',
+            theme: item['theme'] ? String(item['theme']) : this.defaultTheme,
+            template: item['template'] ? String(item['template']) : this.defaultTemplate,
             domain: item['domain'] ? String(item['domain']) : undefined
           } as Blog))
         ),
@@ -95,8 +126,8 @@ export class CmsService {
       ownerUid: data.ownerUid ?? null,
       createdAt: now,
       updatedAt: now,
-      theme: 'default',
-      template: 'default'
+      theme: this.defaultTheme,
+      template: this.defaultTemplate
     };
 
     if (requestedSlug) {
@@ -109,11 +140,36 @@ export class CmsService {
 
     // set slug and default domain to a subdomain of the public root domain
     const defaultDomain = `${newBlog.slug}.${this.rootPublicDomain}`;
-    await setDoc(docRef, { slug: newBlog.slug, domain: defaultDomain, template: 'default' }, { merge: true });
+    await setDoc(docRef, { slug: newBlog.slug, domain: defaultDomain, template: this.defaultTemplate }, { merge: true });
     newBlog.domain = defaultDomain;
-    newBlog.template = 'default';
+    newBlog.template = this.defaultTemplate;
     this.activeBlogSignal.set(newBlog);
     this.blogsSignal.set([...this.blogsSignal(), newBlog]);
+
+    await this.createPage({
+      title: 'About',
+      slug: 'about',
+      excerpt: 'Learn more about this blog and the story behind the brand.',
+      content: `
+<h2>About</h2>
+<p>Welcome to ${newBlog.name}! This is your custom blog site powered by our CMS. Use this page to tell visitors who you are, what you do, and why your content matters.</p>
+<p>Update the title and content as needed to match your brand and personality.</p>
+`,
+      blogId: newBlog.id
+    });
+
+    await this.createPage({
+      title: 'Data Privacy',
+      slug: 'data-privacy',
+      excerpt: 'Understand how this site uses data and protects your privacy.',
+      content: `
+<h2>Data Privacy</h2>
+<p>We respect your privacy. This site collects only the information needed to deliver content and improve your experience.</p>
+<p>We do not sell your data, and we handle visitor information responsibly according to applicable privacy rules.</p>
+`,
+      blogId: newBlog.id
+    });
+
     return newBlog;
   }
 
@@ -126,8 +182,8 @@ export class CmsService {
       ...blog,
       ...data,
       slug: data.slug ? this.slugify(data.slug) : blog.slug,
-      theme: data.theme ?? blog.theme ?? 'default',
-      template: data.template ?? blog.template ?? 'default',
+      theme: data.theme ?? blog.theme ?? this.defaultTheme,
+      template: data.template ?? blog.template ?? this.defaultTemplate,
       updatedAt: new Date().toISOString()
     };
 
@@ -178,8 +234,8 @@ export class CmsService {
           ownerUid: data['ownerUid'] ? String(data['ownerUid']) : null,
           createdAt: data['createdAt'] ? String(data['createdAt']) : undefined,
           updatedAt: data['updatedAt'] ? String(data['updatedAt']) : undefined,
-          theme: data['theme'] ? String(data['theme']) : 'default',
-          template: data['template'] ? String(data['template']) : 'default',
+          theme: data['theme'] ? String(data['theme']) : this.defaultTheme,
+          template: data['template'] ? String(data['template']) : this.defaultTemplate,
           domain: data['domain'] ? String(data['domain']) : undefined
         } as Blog;
 
@@ -510,7 +566,7 @@ export class CmsService {
       return;
     }
 
-    await this.setBlogTheme(blogId, 'default');
+    await this.setBlogTheme(blogId, this.defaultTheme);
   }
 
   private isLocalDevelopmentHost(): boolean {
@@ -582,7 +638,7 @@ export class CmsService {
   }
 
   getThemeCssUrl(themeId?: string): string {
-    const id = themeId || 'default';
+    const id = themeId || this.defaultTheme;
     return `/assets/themes/${id}/theme.css`;
   }
 
@@ -601,7 +657,7 @@ export class CmsService {
     return page;
   }
 
-  async createPage(data: { title: string; slug?: string; excerpt?: string; content?: string }): Promise<Page> {
+  async createPage(data: { title: string; slug?: string; excerpt?: string; content?: string; blogId?: string }): Promise<Page> {
     const now = new Date().toISOString();
     const page: Omit<Page, 'id'> = {
       uid: this.auth.authSignal()?.uid ?? undefined,
@@ -609,6 +665,7 @@ export class CmsService {
       slug: data.slug ? this.slugify(data.slug) : this.slugify(data.title),
       excerpt: data.excerpt ?? '',
       content: data.content ?? '',
+      blogId: data.blogId,
       createdAt: now,
       updatedAt: now
     };
@@ -700,7 +757,7 @@ export class CmsService {
   }
 
   getBlogTemplateId(blog?: Blog): string {
-    return blog?.template || 'default';
+    return blog?.template || this.defaultTemplate;
   }
 
   getAvailableThemes(): Array<{ id: string; label: string }> {
@@ -774,6 +831,7 @@ export class CmsService {
       excerpt: item['excerpt'] ? String(item['excerpt']) : undefined,
       content: String(item['content'] ?? ''),
       contentUrl: item['contentUrl'] ? String(item['contentUrl']) : undefined,
+      blogId: item['blogId'] ? String(item['blogId']) : undefined,
       createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
       updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined
     };

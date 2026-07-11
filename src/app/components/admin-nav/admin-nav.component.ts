@@ -15,7 +15,10 @@ import { CmsService } from '../../services/cms.service';
         <h4>Your blogs</h4>
         <ul>
           <li *ngFor="let b of cms.blogsSignal()">
-            <a (click)="select(b.id)" [class.active]="cms.activeBlogSignal()?.id === b.id">{{ b.name }}</a>
+            <div class="blog-entry">
+              <a (click)="select(b.id)" [class.active]="cms.activeBlogSignal()?.id === b.id">{{ b.name }}</a>
+              <button class="delete-btn" (click)="deleteBlog(b.id, $event)" title="Delete blog">×</button>
+            </div>
           </li>
         </ul>
         <a routerLink="/onboarding" class="btn ghost">+ New Blog</a>
@@ -41,9 +44,12 @@ import { CmsService } from '../../services/cms.service';
     `.admin-nav { display:flex; flex-direction:column; gap:1rem; padding:1rem; background:white; border-right:1px solid #e6eefb; min-height:100vh; }`,
     `.admin-nav .brand { font-weight:800; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.08em; font-size:0.95rem; padding:0.5rem 0; }`,
     `.blogs h4 { margin:0 0 0.25rem 0; color:#374151; font-size:0.9rem; }`,
-    `.blogs ul { list-style:none; padding:0; margin:0 0 0.5rem 0; display:flex; flex-direction:column; gap:0.25rem; }`,
-    `.blogs a { color:#0f172a; text-decoration:none; padding:0.25rem 0.25rem; display:block; }`,
+    `.blogs ul { list-style:none; padding:0; margin:0 0 0.5rem 0; display:flex; flex-direction:column; gap:0.5rem; }`,
+    `.blog-entry { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }`,
+    `.blogs a { color:#0f172a; text-decoration:none; padding:0.25rem 0.25rem; display:block; flex:1; }`,
     `.blogs a.active { font-weight:800; color:#1d4ed8; }`,
+    `.delete-btn { width: 2rem; height: 2rem; border: none; background: transparent; color: #ef4444; font-size: 1.2rem; cursor: pointer; border-radius: 0.5rem; }`,
+    `.delete-btn:hover { background: rgba(239, 68, 68, 0.12); }`,
     `.main-links { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.25rem; }`,
     `.admin-nav a { color:#0f172a; text-decoration:none; padding:0.5rem 0.25rem; display:block; }`,
     `.admin-nav a:hover { background:#f1f9ff; color:#1d4ed8; border-radius:0.25rem; }`,
@@ -59,6 +65,14 @@ export class AdminNavComponent {
   select(id: string) {
     this.cms.setActiveBlogById(id);
     this.router.navigate(['/dashboard', id]);
+  }
+
+  async deleteBlog(blogId: string, event: Event) {
+    event.stopPropagation();
+    await this.cms.deleteBlog(blogId);
+    if (this.cms.activeBlogSignal()?.id === blogId) {
+      this.router.navigate(['/dashboard']);
+    }
   }
 
   newPost() {

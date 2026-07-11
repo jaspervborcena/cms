@@ -20,7 +20,13 @@ import { CmsService } from '../../services/cms.service';
           <nav class="site-nav">
             <a [routerLink]="['/site', blog.id]">Home</a>
             <a [routerLink]="['/site', blog.id]" fragment="posts">Posts</a>
-            <ng-container *ngFor="let page of pages">
+            <ng-container *ngFor="let page of primaryMenuPages">
+              <a [routerLink]="['/pages', page.slug]">{{ page.title }}</a>
+            </ng-container>
+          </nav>
+          <nav class="secondary-nav" *ngIf="secondaryMenuPages.length > 0">
+            <span>More</span>
+            <ng-container *ngFor="let page of secondaryMenuPages">
               <a [routerLink]="['/pages', page.slug]">{{ page.title }}</a>
             </ng-container>
           </nav>
@@ -83,12 +89,20 @@ export class SitePageComponent {
   blog: any = null;
   themeCssUrl = '';
 
+  get primaryMenuPages(): Page[] {
+    return this.service.getPrimaryMenuPages(this.pages);
+  }
+
+  get secondaryMenuPages(): Page[] {
+    return this.service.getSecondaryMenuPages(this.pages);
+  }
+
   constructor() {
     const blogId = this.route.snapshot.paramMap.get('blogId');
     if (!blogId) return;
 
     this.blog = this.service.blogsSignal().find((b) => b.id === blogId) ?? null;
-    this.pages = this.service.pagesSignal();
+    this.pages = this.service.pagesSignal().filter((page) => page.blogId === blogId);
     this.publishedPosts = this.service.postsSignal().filter((post) => post.blogId === blogId && post.status === 'published');
     this.themeCssUrl = this.service.getThemeCssUrl(this.blog?.theme);
   }
