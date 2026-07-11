@@ -17,7 +17,7 @@ import { Blog, Page, Post } from '../../models/cms.models';
           <p class="tagline">{{ blog?.description || 'A simple public site for your published posts.' }}</p>
         </div>
         <nav class="site-nav">
-          <a [routerLink]="['/site', blog?.id]">Home</a>
+          <a href="/">Home</a>
           <a [routerLink]="['/site', blog?.id]" fragment="posts">Posts</a>
           <ng-container *ngFor="let page of pages">
             <a [routerLink]="['/pages', page.slug]">{{ page.title }}</a>

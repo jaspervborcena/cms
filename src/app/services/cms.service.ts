@@ -14,9 +14,11 @@ export class CmsService {
   readonly postsSignal = signal<Post[]>([]);
   readonly pagesSignal = signal<Page[]>([]);
   readonly blogsSignal = signal<Blog[]>([]);
+  readonly blogsLoadedSignal = signal(false);
   readonly activeBlogSignal = signal<Blog | null>(null);
   readonly draftSignal = signal<Post | null>(null);
   readonly previewSignal = signal<Post | null>(null);
+  readonly hostBlogSignal = computed(() => this.findBlogByHostName(this.getCurrentHostname()));
 
   readonly filteredPostsSignal = computed(() => {
     const blog = this.activeBlogSignal();
@@ -75,7 +77,10 @@ export class CmsService {
         ),
         catchError(() => of([] as Blog[]))
       )
-      .subscribe((blogs) => this.blogsSignal.set(blogs));
+      .subscribe((blogs) => {
+        this.blogsSignal.set(blogs);
+        this.blogsLoadedSignal.set(true);
+      });
   }
 
   async createBlog(data: { name: string; description?: string; category?: string; ownerUid?: string | null; slug?: string | null }): Promise<Blog> {
@@ -117,6 +122,7 @@ export class CmsService {
     if (!blog) return null;
 
     const updatedBlog: Blog = {
+
       ...blog,
       ...data,
       slug: data.slug ? this.slugify(data.slug) : blog.slug,
@@ -519,6 +525,10 @@ export class CmsService {
 
   private getCurrentOrigin(): string {
     return window.location.origin.replace(/\/$/, '');
+  }
+
+  private getCurrentHostname(): string {
+    return window.location.hostname.toLowerCase().trim();
   }
 
   getPublicHostForBlog(blog: Blog): string {

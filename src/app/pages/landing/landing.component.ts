@@ -11,16 +11,17 @@ import { DefaultSiteTemplateComponent } from '../default-site-template/default-s
   standalone: true,
   imports: [CommonModule, RouterLink, DefaultSiteTemplateComponent],
   template: `
-    <ng-container *ngIf="blog; else genericLanding">
-      <app-default-site-template
-        [blog]="blog"
-        [pages]="pages"
-        [publishedPosts]="publishedPosts"
-        [themeCssUrl]="themeCssUrl"
-      ></app-default-site-template>
-    </ng-container>
+    <ng-container *ngIf="!loadingBlogHost">
+      <ng-container *ngIf="blog; else genericLanding">
+        <app-default-site-template
+          [blog]="blog"
+          [pages]="pages"
+          [publishedPosts]="publishedPosts"
+          [themeCssUrl]="themeCssUrl"
+        ></app-default-site-template>
+      </ng-container>
 
-    <ng-template #genericLanding>
+      <ng-template #genericLanding>
       <section *ngIf="!focusPlans" class="hero">
         <p class="eyebrow">Tovrika CMS</p>
         <h1>Build your app with a polished editorial experience.</h1>
@@ -109,6 +110,7 @@ export class LandingComponent {
   pages: Page[] = [];
   publishedPosts: Post[] = [];
   themeCssUrl = '';
+  loadingBlogHost = true;
 
   constructor() {
     this.route.fragment.subscribe((f) => {
@@ -123,23 +125,30 @@ export class LandingComponent {
     });
 
     effect(() => {
-      const blogs = this.cms.blogsSignal();
+      const blog = this.cms.hostBlogSignal();
       const pages = this.cms.pagesSignal();
       const posts = this.cms.postsSignal();
-      const blog = this.cms.findBlogByHostName(window.location.hostname);
+      const blogsLoaded = this.cms.blogsLoadedSignal();
+
+      if (!blogsLoaded) {
+        this.loadingBlogHost = true;
+        return;
+      }
 
       if (!blog) {
         this.blog = null;
         this.pages = [];
         this.publishedPosts = [];
         this.themeCssUrl = '';
+        this.loadingBlogHost = false;
         return;
       }
 
       this.blog = blog;
-      this.pages = pages.filter((page) => true);
+      this.pages = pages;
       this.publishedPosts = posts.filter((post) => post.blogId === blog.id && post.status === 'published');
       this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
+      this.loadingBlogHost = false;
     });
   }
 }

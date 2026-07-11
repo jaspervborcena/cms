@@ -18,7 +18,7 @@ import { CmsService } from '../../services/cms.service';
             <p class="tagline">{{ blog.description || 'A simple public blog powered by your CMS.' }}</p>
           </div>
           <nav class="site-nav">
-            <a [routerLink]="homeLink">Home</a>
+            <a [href]="homeLink">Home</a>
           </nav>
         </header>
 
@@ -27,7 +27,7 @@ import { CmsService } from '../../services/cms.service';
             <h1>{{ post.title }}</h1>
             <p class="meta">{{ post.category }} · {{ post.publishedAt | date }}</p>
             <div [innerHTML]="post.content" class="content"></div>
-            <a [routerLink]="homeLink">Back to site</a>
+            <a [href]="homeLink">Back to site</a>
           </article>
         </main>
       </div>
@@ -54,7 +54,7 @@ export class PublicHostComponent implements OnInit {
     const params = this.route.snapshot.paramMap;
     const routeHostSlug = params.get('hostSlug');
     const slug = params.get('slug');
-    const hostnameBlog = this.cms.findBlogByHostName(window.location.hostname);
+    const hostnameBlog = this.cms.hostBlogSignal() ?? this.cms.findBlogByHostName(window.location.hostname);
     const hostSlug = routeHostSlug || hostnameBlog?.id;
 
     if (!hostSlug || !slug) {

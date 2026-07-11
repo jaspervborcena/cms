@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './components/header/header.component';
 import { FooterComponent } from './components/footer/footer.component';
@@ -19,6 +19,7 @@ export class AppComponent {
   readonly auth = inject(AuthService);
   readonly router = inject(Router);
   readonly cms = inject(CmsService);
+  readonly hostBlog = this.cms.hostBlogSignal;
 
   private get currentUrl(): string {
     // ignore fragment and query params when computing layout decisions
@@ -36,8 +37,7 @@ export class AppComponent {
   }
 
   get isBlogHostRoute(): boolean {
-    const blog = this.cms.findBlogByHostName(window.location.hostname);
-    return !!blog;
+    return !!this.hostBlog();
   }
 
   get isPublicRoute(): boolean {
