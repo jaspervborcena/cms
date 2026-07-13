@@ -104,7 +104,8 @@ export class CmsService {
             updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined,
             theme: item['theme'] ? String(item['theme']) : this.defaultTheme,
             template: item['template'] ? String(item['template']) : this.defaultTemplate,
-            domain: item['domain'] ? String(item['domain']) : undefined
+            domain: item['domain'] ? String(item['domain']) : undefined,
+            templateConfig: item['templateConfig'] ? (item['templateConfig'] as TemplateConfig) : undefined
           } as Blog))
         ),
         catchError(() => of([] as Blog[]))
@@ -278,7 +279,8 @@ export class CmsService {
           updatedAt: data['updatedAt'] ? String(data['updatedAt']) : undefined,
           theme: data['theme'] ? String(data['theme']) : this.defaultTheme,
           template: data['template'] ? String(data['template']) : this.defaultTemplate,
-          domain: data['domain'] ? String(data['domain']) : undefined
+          domain: data['domain'] ? String(data['domain']) : undefined,
+          templateConfig: data['templateConfig'] ? (data['templateConfig'] as TemplateConfig) : undefined
         } as Blog;
 
         this.activeBlogSignal.set(blog);
@@ -833,10 +835,17 @@ export class CmsService {
   async setTemplateConfig(blogId: string, config: TemplateConfig): Promise<void> {
     const normalized: TemplateConfig = {
       topNavPageIds: config?.topNavPageIds ?? [],
-      secondaryNavItems: config?.secondaryNavItems ?? [],
+      secondaryNavItems: (config?.secondaryNavItems ?? []).map((item) => {
+        const copy: any = { ...item };
+        Object.keys(copy).forEach((k) => {
+          if (copy[k] === undefined) delete copy[k];
+        });
+        return copy as NavigationItem;
+      }),
       sidebarPageIds: config?.sidebarPageIds ?? [],
-      logoText: config?.logoText,
-      logoColor: config?.logoColor
+      // Firestore rejects `undefined` values — convert missing strings to `null`
+      logoText: config?.logoText ?? null,
+      logoColor: config?.logoColor ?? null
     } as TemplateConfig;
 
     const blogDoc = doc(this.firestore, `blogs/${blogId}`);

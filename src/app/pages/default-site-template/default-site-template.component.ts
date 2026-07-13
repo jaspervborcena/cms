@@ -167,13 +167,27 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    console.log('DefaultSiteTemplate input change', {
-      blog: this.blog,
-      pages: this.pages,
-      publishedPosts: this.publishedPosts,
-      topNavPageIds: this.blog?.templateConfig?.topNavPageIds,
-      secondaryNavItems: this.blog?.templateConfig?.secondaryNavItems
+    const changeSummary = Object.keys(changes).reduce((summary, key) => {
+      const change = changes[key];
+      summary[key] = {
+        previous: change.previousValue,
+        current: change.currentValue,
+        firstChange: change.firstChange
+      };
+      return summary;
+    }, {} as Record<string, { previous: unknown; current: unknown; firstChange: boolean }>);
+
+    console.log('templateConfig change detected', {
+      templateConfig: this.blog?.templateConfig,
+      changeSummary
     });
+
+    if (changes['blog'] && changes['blog'].currentValue?.templateConfig !== changes['blog'].previousValue?.templateConfig) {
+      console.log('blog.templateConfig changed', {
+        previous: changes['blog'].previousValue?.templateConfig,
+        current: changes['blog'].currentValue?.templateConfig
+      });
+    }
   }
 
   // Temporary debug helper rendered on the public page to inspect live data
