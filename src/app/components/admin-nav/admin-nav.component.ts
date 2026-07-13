@@ -25,6 +25,7 @@ import { CmsService } from '../../services/cms.service';
       </div>
 
       <ul class="main-links">
+        <li><a routerLink="/pages">Pages</a></li>
         <li><a routerLink="/posts">Posts</a></li>
         <li><a routerLink="/dashboard">Dashboard</a></li>
         <li><a (click)="openTheme()">Theme</a></li>

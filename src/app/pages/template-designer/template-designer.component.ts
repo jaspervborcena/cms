@@ -2,13 +2,13 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CmsService } from '../../services/cms.service';
-import { Router } from '@angular/router';
-import { Post } from '../../models/cms.models';
+import { Router, RouterLink } from '@angular/router';
+import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.models';
 
 @Component({
   selector: 'app-template-designer',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="template-designer">
       <div *ngIf="cms.activeBlogSignal() as blog; else noBlog" class="designer-container">
@@ -23,6 +23,14 @@ import { Post } from '../../models/cms.models';
               <!-- TOP NAVIGATION -->
               <nav class="top-nav" *ngIf="sections.topNav.enabled">
                 <a href="#" class="nav-link">HOME</a>
+                <ng-container *ngIf="topNavPages.length; else noTopNavPages">
+                  <a *ngFor="let page of topNavPages" [routerLink]="['/site', blog.id, page.slug]" class="nav-link">
+                    {{ page.title }}
+                  </a>
+                </ng-container>
+                <ng-template #noTopNavPages>
+                  <span class="nav-note">Select pages to show here.</span>
+                </ng-template>
                 <a href="https://facebook.com" target="_blank" class="social-link" style="margin-left: auto;">f</a>
               </nav>
 
@@ -34,6 +42,7 @@ import { Post } from '../../models/cms.models';
               <!-- SECONDARY NAVIGATION -->
               <nav class="secondary-nav" *ngIf="sections.secondaryNav.enabled">
                 <a href="#" class="nav-icon">⌂</a>
+                <a *ngFor="let item of templateConfig.secondaryNavItems" href="#" class="nav-item">{{ item.label }}</a>
                 <div class="search-container">
                   <input type="search" placeholder="" class="search-input" />
                   <span class="search-icon">🔍</span>
@@ -51,10 +60,13 @@ import { Post } from '../../models/cms.models';
                   <h2>{{ sections.posts.label }}</h2>
                   <a href="#" class="view-more">View More</a>
                 </div>
-                <ul class="post-list">
-                  <li *ngFor="let post of samplePosts"><a href="#">{{ post.title }}</a></li>
-                  <li *ngIf="samplePosts.length === 0" class="empty">No posts yet.</li>
-                </ul>
+                <div class="post-list">
+                  <article *ngFor="let post of samplePosts" class="post-preview">
+                    <h3 class="post-title">{{ post.title }}</h3>
+                    <div class="post-content" [innerHTML]="post.content || post.excerpt"></div>
+                  </article>
+                  <div *ngIf="samplePosts.length === 0" class="empty">No posts yet.</div>
+                </div>
               </section>
 
               <!-- FOOTER -->
@@ -133,6 +145,16 @@ import { Post } from '../../models/cms.models';
                   <button class="btn-edit" (click)="editElement('footer')">Edit</button>
                 </div>
               </div>
+
+              <!-- PAGE EDITOR -->
+              <div class="element-control">
+                <div class="element-header">
+                  <span class="element-toggle">
+                    <span>Pages</span>
+                  </span>
+                  <button class="btn-edit" (click)="editElement('pages')">Edit</button>
+                </div>
+              </div>
             </div>
 
             <!-- EDIT PANEL -->
@@ -143,10 +165,77 @@ import { Post } from '../../models/cms.models';
                   Logo Text
                   <input type="text" [(ngModel)]="sections.logo.label" placeholder="Blog name" />
                 </label>
+
+                <div *ngIf="editingElement === 'topNav'">
+                  <p>Select pages to show in the top navigation. Selected items use the page slug route below.</p>
+                  <label class="checkbox-item" *ngFor="let page of availablePages">
+                    <input type="checkbox" [checked]="isInTopNav(page.id)" (change)="toggleTopNavPage(page.id)" />
+                    <span>{{ page.title }} <small class="route-text">{{ getPageRoute(page) }}</small></span>
+                  </label>
+                  <p class="info-text">Selected top nav pages will appear next to HOME in the live preview.</p>
+                </div>
+
+                <div *ngIf="editingElement === 'secondaryNav'">
+                  <p>Secondary nav items can be page links or custom labels.</p>
+                  <div class="nav-items-list">
+                    <div class="nav-item-row" *ngFor="let item of templateConfig.secondaryNavItems">
+                      <input type="text" [(ngModel)]="item.label" placeholder="Nav label" class="input-small" />
+                      <select [(ngModel)]="item.url" class="input-small">
+                        <option value="">Custom URL</option>
+                        <option *ngFor="let page of availablePages" [value]="'/site/' + blog.id + '/' + page.slug">
+                          {{ page.title }}
+                        </option>
+                      </select>
+                      <input type="number" [(ngModel)]="item.order" class="input-small order-input" min="1" />
+                      <button (click)="updateSecondaryNavItem(item)" class="btn-small btn-save">Save</button>
+                      <button (click)="removeSecondaryNavItem(item.id)" class="btn-small btn-delete">Delete</button>
+                    </div>
+                    <button type="button" (click)="addSecondaryNavItem()" class="btn-add-item">+ Add nav item</button>
+                  </div>
+                </div>
+
                 <label *ngIf="editingElement === 'posts'">
                   Section Title
                   <input type="text" [(ngModel)]="sections.posts.label" placeholder="Recent Posts" />
                 </label>
+
+                <div *ngIf="editingElement === 'pages'">
+                  <label>
+                    Select page to edit
+                    <select [(ngModel)]="selectedPageId" (ngModelChange)="selectPage($event)">
+                      <option value="">Choose a page</option>
+                      <option *ngFor="let page of availablePages" [value]="page.id">{{ page.title }}</option>
+                    </select>
+                  </label>
+
+                  <div *ngIf="selectedPage">
+                    <label>
+                      Title
+                      <input type="text" [(ngModel)]="pageEditor.title" />
+                    </label>
+                    <label>
+                      Slug
+                      <input type="text" [(ngModel)]="pageEditor.slug" />
+                    </label>
+                    <label>
+                      Excerpt
+                      <textarea [(ngModel)]="pageEditor.excerpt"></textarea>
+                    </label>
+                    <label>
+                      Page Content
+                      <div class="wysiwyg-editor" contenteditable="true" [innerHTML]="pageEditor.content" (input)="onPageEditorInput($event)"></div>
+                    </label>
+                    <label class="checkbox-item">
+                      <input type="checkbox" [checked]="isInTopNav(selectedPage.id)" (change)="toggleTopNavPage(selectedPage.id)" />
+                      <span>Add to Top Navigation</span>
+                    </label>
+                    <label class="checkbox-item">
+                      <input type="checkbox" [checked]="isInSecondaryNav(selectedPage.id)" (change)="toggleSecondaryNavPage(selectedPage.id)" />
+                      <span>Add to Secondary Navigation</span>
+                    </label>
+                    <button type="button" class="btn btn-primary" (click)="savePage()">Save Page</button>
+                  </div>
+                </div>
               </div>
               <button (click)="editingElement = null" class="btn-close">Done</button>
             </div>
@@ -225,6 +314,14 @@ export class TemplateDesignerComponent implements OnInit {
 
   samplePosts: Post[] = [];
   editingElement: string | null = null;
+  selectedPage: Page | null = null;
+  selectedPageId: string | null = null;
+  pageEditor = {
+    title: '',
+    slug: '',
+    excerpt: '',
+    content: ''
+  };
 
   sections = {
     topNav: { enabled: true, label: 'Top Navigation' },
@@ -235,15 +332,35 @@ export class TemplateDesignerComponent implements OnInit {
     footer: { enabled: true, label: 'Footer' }
   };
 
+  templateConfig: TemplateConfig = {
+    topNavPageIds: [],
+    secondaryNavItems: [],
+    sidebarPageIds: []
+  };
+
+  get topNavPages(): Page[] {
+    return this.cms.blogPagesSignal().filter((page) => this.templateConfig.topNavPageIds?.includes(page.id));
+  }
+
+  get availablePages(): Page[] {
+    return this.cms.blogPagesSignal();
+  }
+
   ngOnInit() {
     this.loadTemplate();
   }
 
-  loadTemplate() {
+  async loadTemplate() {
     const blog = this.cms.activeBlogSignal();
-    if (blog) {
-      this.samplePosts = this.cms.publishedPostsSignal().slice(0, 5);
-    }
+    if (!blog) return;
+
+    this.samplePosts = this.cms.publishedPostsSignal().slice(0, 5);
+    const config = blog.templateConfig || {};
+    this.templateConfig = {
+      topNavPageIds: config.topNavPageIds || [],
+      secondaryNavItems: config.secondaryNavItems || [],
+      sidebarPageIds: config.sidebarPageIds || []
+    };
   }
 
   editElement(element: string) {
@@ -257,14 +374,123 @@ export class TemplateDesignerComponent implements OnInit {
       secondaryNav: 'Secondary Navigation',
       updateButton: 'Update Button',
       posts: 'Posts Section',
-      footer: 'Footer'
+      footer: 'Footer',
+      pages: 'Pages'
     };
     return labels[element] || element;
   }
 
+  isInTopNav(pageId: string): boolean {
+    return this.templateConfig.topNavPageIds?.includes(pageId) || false;
+  }
+
+  async toggleTopNavPage(pageId: string): Promise<void> {
+    if (!this.templateConfig.topNavPageIds) this.templateConfig.topNavPageIds = [];
+    if (this.templateConfig.topNavPageIds.includes(pageId)) {
+      this.templateConfig.topNavPageIds = this.templateConfig.topNavPageIds.filter((id) => id !== pageId);
+    } else {
+      this.templateConfig.topNavPageIds = [...this.templateConfig.topNavPageIds, pageId];
+    }
+
+    const blog = this.cms.activeBlogSignal();
+    if (blog) {
+      try {
+        await this.cms.setTemplateConfig(blog.id, this.templateConfig);
+      } catch (err) {
+        console.error('Failed to persist top nav selection', err);
+      }
+    }
+  }
+
+  addSecondaryNavItem(): void {
+    const item: NavigationItem = {
+      id: `nav-${Date.now()}`,
+      label: 'New Nav',
+      order: this.templateConfig.secondaryNavItems?.length ? this.templateConfig.secondaryNavItems.length + 1 : 1
+    };
+    this.templateConfig.secondaryNavItems = [...(this.templateConfig.secondaryNavItems || []), item];
+  }
+
+  updateSecondaryNavItem(item: NavigationItem): void {
+    if (!this.templateConfig.secondaryNavItems) return;
+    this.templateConfig.secondaryNavItems = this.templateConfig.secondaryNavItems.map((nav) => (nav.id === item.id ? item : nav));
+  }
+
+  removeSecondaryNavItem(itemId: string): void {
+    if (!this.templateConfig.secondaryNavItems) return;
+    this.templateConfig.secondaryNavItems = this.templateConfig.secondaryNavItems.filter((item) => item.id !== itemId);
+  }
+
+  isInSecondaryNav(pageId: string): boolean {
+    return !!this.templateConfig.secondaryNavItems?.some((item) => item.url === `/site/${this.cms.activeBlogSignal()?.id}/${this.availablePages.find((page) => page.id === pageId)?.slug}`);
+  }
+
+  getPageRoute(page: Page): string {
+    const blog = this.cms.activeBlogSignal();
+    return blog ? `/site/${blog.id}/${page.slug}` : `/${page.slug}`;
+  }
+
+  async toggleSecondaryNavPage(pageId: string): Promise<void> {
+    const blog = this.cms.activeBlogSignal();
+    if (!blog) return;
+
+    const page = this.availablePages.find((p) => p.id === pageId);
+    if (!page) return;
+
+    const url = `/site/${blog.id}/${page.slug}`;
+    const existingIndex = this.templateConfig.secondaryNavItems?.findIndex((item) => item.url === url) ?? -1;
+
+    if (!this.templateConfig.secondaryNavItems) {
+      this.templateConfig.secondaryNavItems = [];
+    }
+
+    if (existingIndex >= 0) {
+      this.templateConfig.secondaryNavItems = this.templateConfig.secondaryNavItems.filter((item) => item.url !== url);
+    } else {
+      this.templateConfig.secondaryNavItems = [
+        ...(this.templateConfig.secondaryNavItems || []),
+        { id: `nav-${Date.now()}`, label: page.title, url, order: (this.templateConfig.secondaryNavItems?.length ?? 0) + 1 }
+      ];
+    }
+
+    try {
+      await this.cms.setTemplateConfig(blog.id, this.templateConfig);
+    } catch (err) {
+      console.error('Failed to persist secondary nav change', err);
+    }
+  }
+
+  selectPage(pageId: string): void {
+    const page = this.availablePages.find((p) => p.id === pageId);
+    if (!page) return;
+    this.selectedPage = page;
+    this.selectedPageId = pageId;
+    this.pageEditor = {
+      title: page.title,
+      slug: page.slug,
+      excerpt: page.excerpt || '',
+      content: page.content || ''
+    };
+  }
+
+  onPageEditorInput(event: Event): void {
+    const target = event.target as HTMLElement;
+    this.pageEditor.content = target.innerHTML;
+  }
+
+  async savePage(): Promise<void> {
+    if (!this.selectedPage) return;
+    await this.cms.updatePage(this.selectedPage.id, {
+      title: this.pageEditor.title,
+      slug: this.pageEditor.slug,
+      excerpt: this.pageEditor.excerpt,
+      content: this.pageEditor.content
+    });
+    this.loadTemplate();
+  }
+
   async saveTemplate(blogId: string) {
-    // Save template configuration to Firestore
-    console.log('Saving template:', this.sections);
+    await this.cms.setTemplateConfig(blogId, this.templateConfig);
     this.router.navigate(['/dashboard', blogId]);
   }
 

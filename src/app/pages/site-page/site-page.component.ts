@@ -1,5 +1,5 @@
 import { Component, inject, ViewContainerRef, ViewChild, AfterViewInit, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Page } from '../../models/cms.models';
 import { CmsService } from '../../services/cms.service';
@@ -63,7 +63,9 @@ export class SitePageComponent implements AfterViewInit, OnInit, OnDestroy {
       const cssUrl = this.themeCssUrl();
       
       if (b && this.templateContainer) {
-        this.loadTemplate();
+          // diagnostic: log template config and current pages/posts when loading template
+          console.log('Loading site template for blog', b.id, { templateConfig: b.templateConfig, pages: this.pages(), publishedPosts: this.publishedPosts() });
+          void this.loadTemplate();
       }
     });
   }
@@ -76,24 +78,27 @@ export class SitePageComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    this.loadTemplate();
+    void this.loadTemplate();
   }
 
   ngOnDestroy(): void {
     // Cleanup if needed
   }
 
-  private loadTemplate(): void {
+  private async loadTemplate(): Promise<void> {
     const b = this.blog();
     if (!b || !this.templateContainer) return;
+
+    const { DefaultSiteTemplateComponent } = await import('../default-site-template/default-site-template.component');
 
     this.templateContainer.clear();
     const componentRef = this.templateContainer.createComponent(DefaultSiteTemplateComponent);
 
     // Pass data to the template component
-    componentRef.instance.blog = b;
-    componentRef.instance.pages = this.pages();
-    componentRef.instance.publishedPosts = this.publishedPosts();
-    componentRef.instance.themeCssUrl = this.themeCssUrl();
+    const instance = componentRef.instance as InstanceType<typeof DefaultSiteTemplateComponent>;
+    instance.blog = b;
+    instance.pages = this.pages();
+    instance.publishedPosts = this.publishedPosts();
+    instance.themeCssUrl = this.themeCssUrl();
   }
 }

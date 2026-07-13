@@ -1,50 +1,94 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, inject, signal, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { CmsService } from '../../services/cms.service';
+import { Page } from '../../models/cms.models';
 
 @Component({
   selector: 'app-pages-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="pages-page">
       <header class="page-header">
         <div>
-          <h1>Pages</h1>
-          <p>Manage the menu pages for your current blog. Default pages Home, About, and Data Privacy are created automatically.</p>
+          <p class="muted-label">Pages</p>
+          <h1>Page designer</h1>
+          <p>Create, edit, and publish site pages with a WYSIWYG editor and menu assignment.</p>
         </div>
-        <button class="btn" type="button" (click)="toggleCreate()">+ New Page</button>
+        <button class="btn" type="button" (click)="newPage()">+ New Page</button>
       </header>
 
-      <section class="page-editor" *ngIf="showCreate()">
-        <h2>Create a page</h2>
-        <form [formGroup]="form" (ngSubmit)="createPage()">
-          <label>Title<input formControlName="title" /></label>
-          <label>Slug<input formControlName="slug" /></label>
-          <label>Excerpt<textarea formControlName="excerpt"></textarea></label>
-          <label>Content<textarea formControlName="content"></textarea></label>
-          <div class="actions">
-            <button type="button" class="ghost-btn" (click)="toggleCreate()">Cancel</button>
-            <button type="submit" class="btn" [disabled]="form.invalid">Create page</button>
+      <div class="editor-layout">
+        <aside class="page-list-panel">
+          <div class="list-heading">
+            <h2>Your pages</h2>
+            <span>{{ service.blogPagesSignal().length }} pages</span>
           </div>
+
+          <div *ngIf="service.blogPagesSignal().length === 0" class="empty-state">
+            <p>No pages created yet. Click New Page to get started.</p>
+          </div>
+
+          <div class="page-list" *ngIf="service.blogPagesSignal().length > 0">
+            <button
+              class="page-item"
+              *ngFor="let page of service.blogPagesSignal()"
+              [class.active]="selectedPage()?.id === page.id"
+              type="button"
+              (click)="selectPage(page)">
+              <span>{{ page.title }}</span>
+              <small>{{ page.slug }}</small>
+            </button>
+          </div>
+        </aside>
+
+        <section class="page-editor" *ngIf="selectedPage() || showCreate()">
+          <div class="editor-header">
+            <div>
+              <h2>{{ selectedPage() ? 'Edit page' : 'Create new page' }}</h2>
+              <p *ngIf="selectedPage()">Editing page <strong>{{ selectedPage()?.title }}</strong>.</p>
+            </div>
+            <div class="editor-actions">
+              <button type="button" class="ghost-btn" (click)="clearSelection()">Clear</button>
+              <button type="button" class="btn" [disabled]="form.invalid" (click)="savePage()">
+                {{ selectedPage() ? 'Save page' : 'Create page' }}
+              </button>
+            </div>
+          </div>
+
+          <form [formGroup]="form" class="page-form" (ngSubmit)="savePage()">
+            <label>Title<input formControlName="title" placeholder="Page title" /></label>
+            <label>Slug<input formControlName="slug" placeholder="page-slug" /></label>
+            <label>Excerpt<textarea formControlName="excerpt" placeholder="Page summary"></textarea></label>
+          </form>
+
+          <div class="editor-toolbar">
+            <button type="button" (click)="format('bold')">B</button>
+            <button type="button" (click)="format('italic')">I</button>
+            <button type="button" (click)="format('underline')">U</button>
+            <button type="button" (click)="format('insertUnorderedList')">• List</button>
+            <button type="button" (click)="format('insertOrderedList')">1. List</button>
+            <button type="button" (click)="createLink()">Link</button>
+          </div>
+
+          <div
+            #editor
+            class="editor-panel"
+            contenteditable="true"
+            [innerHTML]="form.controls.content.value"
+            (input)="syncContent()"
+            aria-label="Page content editor"></div>
+
+          <div class="page-footer">
+            <button type="button" class="ghost-btn" (click)="clearEditor()">Reset content</button>
+            <button type="button" class="btn" [disabled]="form.invalid" (click)="savePage()">
+              {{ selectedPage() ? 'Save page' : 'Create page' }}
+            </button>
+          </div>
+
           <div class="error" *ngIf="error()">{{ error() }}</div>
-        </form>
-      </section>
-
-      <section *ngIf="service.blogPagesSignal().length === 0" class="empty-state">
-        <p>No pages yet for this blog. Create one to add menu items.</p>
-      </section>
-
-      <div class="list" *ngIf="service.blogPagesSignal().length > 0">
-        <article class="card" *ngFor="let page of service.blogPagesSignal()">
-          <div>
-            <h2>{{ page.title }}</h2>
-            <p>{{ page.excerpt }}</p>
-          </div>
-          <a [routerLink]="['/pages', page.slug]">Open</a>
-        </article>
+        </section>
       </div>
     </section>
   `,
@@ -72,8 +116,10 @@ import { CmsService } from '../../services/cms.service';
 export class PagesPageComponent {
   readonly service = inject(CmsService);
   private fb = inject(FormBuilder);
+  selectedPage = signal<Page | null>(null);
   showCreate = signal(false);
   error = signal<string | null>(null);
+  @ViewChild('editor', { static: false }) editor?: ElementRef<HTMLDivElement>;
 
   form = this.fb.nonNullable.group({
     title: ['', [Validators.required]],
@@ -82,15 +128,68 @@ export class PagesPageComponent {
     content: ['']
   });
 
-  toggleCreate(): void {
+  newPage(): void {
+    this.selectedPage.set(null);
+    this.showCreate.set(true);
     this.error.set(null);
-    this.showCreate.update((current) => !current);
+    this.form.reset({ title: '', slug: '', excerpt: '', content: '' });
+    this.updateEditorContent('');
   }
 
-  async createPage(): Promise<void> {
+  selectPage(page: Page): void {
+    this.selectedPage.set(page);
+    this.showCreate.set(false);
+    this.error.set(null);
+    this.form.setValue({
+      title: page.title,
+      slug: page.slug,
+      excerpt: page.excerpt ?? '',
+      content: page.content
+    });
+    this.updateEditorContent(page.content);
+  }
+
+  clearSelection(): void {
+    this.selectedPage.set(null);
+    this.showCreate.set(false);
+    this.error.set(null);
+    this.form.reset({ title: '', slug: '', excerpt: '', content: '' });
+    this.updateEditorContent('');
+  }
+
+  clearEditor(): void {
+    this.form.patchValue({ content: '' });
+    this.updateEditorContent('');
+  }
+
+  syncContent(): void {
+    const html = this.editor?.nativeElement.innerHTML ?? '';
+    this.form.controls.content.setValue(html);
+  }
+
+  format(command: string, value: string = ''): void {
+    document.execCommand(command, false, value);
+    this.syncContent();
+  }
+
+  createLink(): void {
+    const url = window.prompt('Enter link URL');
+    if (url) {
+      document.execCommand('createLink', false, url);
+      this.syncContent();
+    }
+  }
+
+  private updateEditorContent(content: string): void {
+    if (this.editor) {
+      this.editor.nativeElement.innerHTML = content;
+    }
+  }
+
+  async savePage(): Promise<void> {
     const blog = this.service.activeBlogSignal();
     if (!blog) {
-      this.error.set('Select a blog first before creating a page.');
+      this.error.set('Select a blog first before saving this page.');
       return;
     }
 
@@ -103,17 +202,28 @@ export class PagesPageComponent {
     this.error.set(null);
 
     try {
-      await this.service.createPage({
-        title,
-        slug,
-        excerpt,
-        content,
-        blogId: blog.id
-      });
-      this.form.reset({ title: '', slug: '', excerpt: '', content: '' });
-      this.showCreate.set(false);
+      if (this.selectedPage()) {
+        const updated = await this.service.updatePage(this.selectedPage()!.id, {
+          title,
+          slug,
+          excerpt,
+          content
+        });
+        if (updated) {
+          this.selectPage(updated);
+        }
+      } else {
+        const created = await this.service.createPage({
+          title,
+          slug,
+          excerpt,
+          content,
+          blogId: blog.id
+        });
+        this.selectPage(created);
+      }
     } catch (err: any) {
-      this.error.set(err?.message ?? 'Unable to create page.');
+      this.error.set(err?.message ?? 'Unable to save page.');
     }
   }
 }

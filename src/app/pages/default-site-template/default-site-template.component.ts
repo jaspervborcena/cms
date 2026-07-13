@@ -16,6 +16,12 @@ import { CmsService } from '../../services/cms.service';
       <!-- TOP NAVIGATION -->
       <nav class="top-nav">
         <a [routerLink]="['/site', blog?.id]" class="nav-link">HOME</a>
+        <ng-container *ngIf="topNavPages.length; else noTopNav">
+          <a *ngFor="let p of topNavPages" [routerLink]="['/site', blog?.id, p.slug]" class="nav-link">{{ p.title }}</a>
+        </ng-container>
+        <ng-template #noTopNav>
+          <!-- no additional top nav pages configured -->
+        </ng-template>
         <a href="https://facebook.com" target="_blank" rel="noopener" class="social-link">f</a>
       </nav>
 
@@ -31,6 +37,9 @@ import { CmsService } from '../../services/cms.service';
       <!-- SEARCH & UPDATE BAR -->
       <nav class="secondary-nav">
         <a href="#" class="nav-icon">⌂</a>
+        <ng-container *ngIf="secondaryNavItems?.length">
+          <a *ngFor="let item of secondaryNavItems" [attr.href]="item.url || '#'" class="nav-item">{{ item.label }}</a>
+        </ng-container>
         <div class="search-container">
           <input type="search" placeholder="" class="search-input" />
           <span class="search-icon">🔍</span>
@@ -52,14 +61,14 @@ import { CmsService } from '../../services/cms.service';
               <h2>RECENT POSTS</h2>
               <a [routerLink]="['/site', blog?.id]" class="view-more">View More</a>
             </div>
-
-            <!-- ALL POSTS -->
-            <ul class="post-list">
-              <li *ngFor="let post of publishedPosts">
-                <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
-              </li>
-              <li *ngIf="publishedPosts.length === 0" class="empty">No posts yet.</li>
-            </ul>
+              <!-- ALL POSTS -->
+              <div class="post-list">
+                <article *ngFor="let post of publishedPosts" class="post-item">
+                  <h3 class="post-title"><a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a></h3>
+                  <div class="post-excerpt">{{ post.excerpt || (post.content | slice:0:250) }}</div>
+                </article>
+                <div *ngIf="publishedPosts.length === 0" class="empty">No posts yet.</div>
+              </div>
           </section>
 
           <!-- PAGES SIDEBAR -->
@@ -134,6 +143,17 @@ export class DefaultSiteTemplateComponent {
   @Input() themeCssUrl = '';
   
   globalThemeCss = '';
+
+  get topNavPages(): Page[] {
+    if (!this.blog?.templateConfig?.topNavPageIds || !this.pages) return [];
+    return this.blog.templateConfig.topNavPageIds
+      .map((id) => this.pages.find((p) => p.id === id))
+      .filter((p): p is Page => !!p);
+  }
+
+  get secondaryNavItems() {
+    return this.blog?.templateConfig?.secondaryNavItems || [];
+  }
 
   constructor() {
     this.loadGlobalThemeCss();

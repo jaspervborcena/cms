@@ -5,6 +5,7 @@ import { DashboardComponent } from './pages/dashboard/dashboard.component';
 import { PreviewPageComponent } from './pages/preview-page/preview-page.component';
 import { SitePageComponent } from './pages/site-page/site-page.component';
 import { PostDetailComponent } from './pages/post-detail/post-detail.component';
+import { PagesPageComponent } from './pages/pages-page/pages-page.component';
 import { PublicHostComponent } from './pages/public-host/public-host.component';
 import { authGuard } from './guards/auth.guard';
 import { ensureBlogGuard } from './guards/ensure-blog.guard';
@@ -20,6 +21,7 @@ export const routes: Routes = [
   { path: 'dashboard/:blogId/theme', loadComponent: () => import('./pages/theme-settings/theme-settings.component').then(m => m.ThemeSettingsComponent), canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/:blogId/template-designer', loadComponent: () => import('./pages/template-designer/template-designer.component').then(m => m.TemplateDesignerComponent), canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/global-theme/settings', loadComponent: () => import('./pages/global-theme-config/global-theme-config.component').then(m => m.GlobalThemeConfigComponent), canActivate: [authGuard] },
+  { path: 'pages', component: PagesPageComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'site/:blogId', component: SitePageComponent },
   { path: 'site/:blogId/:slug', component: PostDetailComponent },
   { path: 'preview/:blogId/:postId', component: PreviewPageComponent, canActivate: [authGuard, ensureBlogGuard] },

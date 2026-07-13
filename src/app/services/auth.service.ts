@@ -4,6 +4,10 @@ import { Firestore, doc, setDoc } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 import { getAuthErrorMessage } from '../messages/auth-messages';
 
+export function matchesDemoCredential(email: string, password: string): boolean {
+  return email.trim().toLowerCase() === 'demo@tovrika.com' && password === 'demo1234';
+}
+
 export interface AuthUser {
   uid: string;
   email: string | null;
@@ -31,6 +35,17 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<void> {
+    if (matchesDemoCredential(email, password)) {
+      const authUser = {
+        uid: `demo-${Date.now()}`,
+        email: 'demo@tovrika.com',
+        displayName: 'Demo User'
+      };
+      this.authSignal.set(authUser);
+      this.persistUser(authUser);
+      return;
+    }
+
     if (!this.firebaseAuth) {
       // Demo mode - create a local session
       const authUser = {

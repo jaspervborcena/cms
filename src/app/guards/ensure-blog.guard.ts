@@ -17,6 +17,11 @@ export const ensureBlogGuard: CanActivateFn = async (route: ActivatedRouteSnapsh
     return true;
   }
 
+  // Allow the dashboard landing page even when no blog is selected yet.
+  if (route.routeConfig?.path === 'dashboard') {
+    return true;
+  }
+
   router.navigate(['/dashboard']);
   return false;
 };

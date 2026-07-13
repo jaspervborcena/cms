@@ -46,7 +46,7 @@ interface AuthFormValue {
         <p class="error" *ngIf="form.hasError('passwordsMismatch') && (confirmPasswordControl?.dirty || confirmPasswordControl?.touched)">
           Passwords do not match.
         </p>
-        <button type="submit" [disabled]="form.invalid">Continue</button>
+        <button type="submit" [disabled]="form.invalid || clicked()">{{ clicked() ? 'Loading...' : 'Continue' }}</button>
       </form>
       <p class="error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
       <p class="switch">
@@ -79,6 +79,8 @@ export class AuthComponent {
 
   readonly passwordHidden = signal(true);
   readonly confirmPasswordHidden = signal(true);
+
+  readonly clicked = signal(false);
 
   readonly form: FormGroup = this.buildForm();
 
@@ -121,6 +123,11 @@ export class AuthComponent {
 
     const { email, password } = this.form.getRawValue();
     try {
+      this.errorMessage.set(null);
+      this.clicked.set(true);
+      // allow UI to render the loading state before starting async work
+      await new Promise((res) => setTimeout(res, 0));
+
       if (this.mode === 'register') {
         await this.authService.register(email, password);
       } else {
@@ -129,6 +136,8 @@ export class AuthComponent {
       this.router.navigate(['/dashboard']);
     } catch (error: any) {
       this.errorMessage.set(error?.message ?? 'An unexpected error occurred.');
+    } finally {
+      this.clicked.set(false);
     }
   }
 }
