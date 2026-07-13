@@ -1,14 +1,13 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { CmsService } from '../../services/cms.service';
 import { NavigationItem, TemplateConfig } from '../../models/cms.models';
 
 @Component({
   selector: 'app-template-config',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="template-config-container">
       <div *ngIf="cms.activeBlogSignal() as blog; else noBlog">
@@ -203,7 +202,7 @@ import { NavigationItem, TemplateConfig } from '../../models/cms.models';
   ]
 })
 export class TemplateConfigComponent implements OnInit {
-  private readonly cms = inject(CmsService);
+  readonly cms = inject(CmsService);
 
   config: TemplateConfig = {};
   allPages: any[] = [];

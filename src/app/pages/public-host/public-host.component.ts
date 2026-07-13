@@ -6,7 +6,7 @@ import { CmsService } from '../../services/cms.service';
 @Component({
   selector: 'app-public-host',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   template: `
     <section class="public-host" *ngIf="loaded; else loading">
       <link rel="stylesheet" [attr.href]="themeCssUrl" *ngIf="themeCssUrl">

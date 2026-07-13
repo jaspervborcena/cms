@@ -8,7 +8,7 @@ import { DefaultSiteTemplateComponent } from '../default-site-template/default-s
 @Component({
   selector: 'app-site-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, DefaultSiteTemplateComponent],
+  imports: [CommonModule, DefaultSiteTemplateComponent],
   template: `
     <div *ngIf="blog; else missing">
       <ng-container #templateContainer></ng-container>
