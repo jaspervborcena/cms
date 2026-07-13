@@ -831,16 +831,24 @@ export class CmsService {
   }
 
   async setTemplateConfig(blogId: string, config: TemplateConfig): Promise<void> {
+    const normalized: TemplateConfig = {
+      topNavPageIds: config?.topNavPageIds ?? [],
+      secondaryNavItems: config?.secondaryNavItems ?? [],
+      sidebarPageIds: config?.sidebarPageIds ?? [],
+      logoText: config?.logoText,
+      logoColor: config?.logoColor
+    } as TemplateConfig;
+
     const blogDoc = doc(this.firestore, `blogs/${blogId}`);
-    await setDoc(blogDoc, { templateConfig: config }, { merge: true });
+    await setDoc(blogDoc, { templateConfig: normalized }, { merge: true });
 
     const current = this.activeBlogSignal();
     if (current?.id === blogId) {
-      this.activeBlogSignal.set({ ...current, templateConfig: config });
+      this.activeBlogSignal.set({ ...current, templateConfig: normalized });
     }
 
     const blogs = this.blogsSignal();
-    const updated = blogs.map((b) => (b.id === blogId ? { ...b, templateConfig: config } : b));
+    const updated = blogs.map((b) => (b.id === blogId ? { ...b, templateConfig: normalized } : b));
     this.blogsSignal.set(updated);
   }
 

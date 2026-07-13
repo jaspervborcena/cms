@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input, inject, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Blog, Page, Post } from '../../models/cms.models';
@@ -134,7 +134,7 @@ import { CmsService } from '../../services/cms.service';
     `@media (max-width: 768px) { .content-grid { grid-template-columns: 1fr; } .secondary-nav { flex-wrap: wrap; } .top-nav { flex-wrap: wrap; } }`
   ]
 })
-export class DefaultSiteTemplateComponent {
+export class DefaultSiteTemplateComponent implements OnChanges {
   private readonly cms = inject(CmsService);
 
   @Input() blog: Blog | null = null;
@@ -157,6 +157,16 @@ export class DefaultSiteTemplateComponent {
 
   constructor() {
     this.loadGlobalThemeCss();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('DefaultSiteTemplate input change', {
+      blog: this.blog,
+      pages: this.pages,
+      publishedPosts: this.publishedPosts,
+      topNavPageIds: this.blog?.templateConfig?.topNavPageIds,
+      secondaryNavItems: this.blog?.templateConfig?.secondaryNavItems
+    });
   }
 
   private async loadGlobalThemeCss(): Promise<void> {
