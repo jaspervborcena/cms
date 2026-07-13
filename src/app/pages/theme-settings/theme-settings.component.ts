@@ -10,8 +10,8 @@ import { Router } from '@angular/router';
   imports: [CommonModule, FormsModule],
   template: `
     <section class="theme-settings">
-      <h2>Theme settings</h2>
-      <p>Select a theme for the active blog.</p>
+      <h2>Theme & Template settings</h2>
+      <p>Customize the appearance and layout of your blog.</p>
       <div *ngIf="cms.activeBlogSignal() as blog; else noBlog">
         <label>Theme
           <select [(ngModel)]="selectedTheme">
@@ -25,15 +25,25 @@ import { Router } from '@angular/router';
           </select>
         </label>
 
-        <div style="margin-top:1rem">
+        <div style="margin-top:1rem; display: flex; gap: 1rem;">
           <button class="btn" (click)="save(blog.id)">Save settings</button>
+          <button class="btn btn-secondary" (click)="navigateToTemplateConfig(blog.id)">Configure Template</button>
         </div>
       </div>
       <ng-template #noBlog>
         <p>No active blog selected.</p>
       </ng-template>
     </section>
-  `
+  `,
+  styles: [
+    `.theme-settings { max-width: 600px; }`,
+    `label { display: block; margin-bottom: 1rem; font-weight: 600; }`,
+    `select { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 0.5rem; }`,
+    `.btn { padding: 0.75rem 1.5rem; background: #1d4ed8; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; }`,
+    `.btn:hover { background: #1e40af; }`,
+    `.btn-secondary { background: #6b7280; }`,
+    `.btn-secondary:hover { background: #4b5563; }`
+  ]
 })
 export class ThemeSettingsComponent {
   readonly cms = inject(CmsService);
@@ -59,5 +69,9 @@ export class ThemeSettingsComponent {
 
     this.cms.setActiveBlogById(blogId);
     this.router.navigate(['/dashboard', blogId]);
+  }
+
+  navigateToTemplateConfig(blogId: string): void {
+    this.router.navigate(['/dashboard', blogId, 'template-config']);
   }
 }

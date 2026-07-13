@@ -28,9 +28,15 @@ import { AuthService } from '../../services/auth.service';
           <div class="themes">
             <button *ngFor="let t of themes" (click)="selectTheme(t)" [class.active]="selectedTheme===t">{{ t }}</button>
           </div>
+
+          <h2 style="margin-top:2rem">Pick a template layout</h2>
+          <div class="templates">
+            <button *ngFor="let t of templates" (click)="selectTemplate(t)" [class.active]="selectedTemplate===t">{{ t }}</button>
+          </div>
+          
           <div class="actions">
             <button (click)="back()">Back</button>
-            <button (click)="applyTheme()" [disabled]="!selectedTheme">Save & continue</button>
+            <button (click)="applyTheme()" [disabled]="!selectedTheme || !selectedTemplate">Save & continue</button>
           </div>
         </div>
 
@@ -54,9 +60,12 @@ import { AuthService } from '../../services/auth.service';
     `input, textarea, select { width:100%; padding:0.5rem; border:1px solid #d1d5db; border-radius:0.5rem; }`,
     `.actions { margin-top:1rem; display:flex; gap:0.5rem; }`,
     `button { padding:0.6rem 0.9rem; border-radius:0.45rem; border:none; background:#1d4ed8; color:white; font-weight:700; }`,
-    `.themes { display:flex; gap:0.5rem; margin:1rem 0; }`,
+    `.themes { display:flex; gap:0.5rem; margin:1rem 0; flex-wrap: wrap; }`,
     `.themes button { background:#e6f0ff; color:#1d4ed8; border:none; padding:0.5rem 0.8rem; border-radius:0.4rem; }`,
     `.themes button.active { background:#1d4ed8; color:white; }`,
+    `.templates { display:flex; gap:0.5rem; margin:1rem 0; flex-wrap: wrap; }`,
+    `.templates button { background:#e6f0ff; color:#1d4ed8; border:none; padding:0.5rem 0.8rem; border-radius:0.4rem; }`,
+    `.templates button.active { background:#1d4ed8; color:white; }`,
     `.muted { color:#6b7280; font-size:0.95rem; }
     `
   ]
@@ -68,8 +77,10 @@ export class OnboardingComponent {
   private router = inject(Router);
 
   step = 1;
-  themes = ['Light', 'Slate', 'Minimal'];
+  themes = this.cms.getAvailableThemes().map(t => t.label);
+  templates = this.cms.getAvailableTemplates().map(t => t.label);
   selectedTheme: string | null = null;
+  selectedTemplate: string | null = null;
 
   form1 = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
@@ -86,17 +97,34 @@ export class OnboardingComponent {
     const blog = await this.cms.createBlog({ name, description, category, ownerUid });
     this.step = 2;
     // store blog id locally already handled by CmsService
-    this.selectedTheme = blog.theme ?? 'Light';
+    this.selectedTheme = blog.theme ?? 'Default';
+    this.selectedTemplate = blog.template ?? 'Default';
   }
 
   back() { this.step = Math.max(1, this.step - 1); }
 
   selectTheme(t: string) { this.selectedTheme = t; }
 
+  selectTemplate(t: string) { this.selectedTemplate = t; }
+
   async applyTheme(): Promise<void> {
     const blog = this.cms.activeBlogSignal();
     if (!blog) return;
-    await this.cms.setBlogTheme(blog.id, this.selectedTheme ?? 'Light');
+    
+    // Find the theme ID from the label
+    const themeLabel = this.selectedTheme ?? 'Default';
+    const themeObj = this.cms.getAvailableThemes().find(t => t.label === themeLabel);
+    const themeId = themeObj?.id ?? 'default';
+    
+    // Find the template ID from the label
+    const templateLabel = this.selectedTemplate ?? 'Default';
+    const templateObj = this.cms.getAvailableTemplates().find(t => t.label === templateLabel);
+    const templateId = templateObj?.id ?? 'default';
+    
+    await Promise.all([
+      this.cms.setBlogTheme(blog.id, themeId),
+      this.cms.setBlogTemplate(blog.id, templateId)
+    ]);
     this.step = 3;
   }
 

@@ -2,7 +2,7 @@
 import { collection, collectionData, Firestore, orderBy, query, where, getDocs, addDoc, setDoc, doc, getDoc, updateDoc, deleteDoc, limit } from '@angular/fire/firestore';
 import { Storage, getDownloadURL, ref, uploadString } from '@angular/fire/storage';
 import { catchError, map, of } from 'rxjs';
-import { Page, Post, Blog } from '../models/cms.models';
+import { Page, Post, Blog, TemplateConfig, NavigationItem } from '../models/cms.models';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -80,7 +80,7 @@ export class CmsService {
     this.loadPages();
   }
 
-  readonly defaultTheme = 'default';
+  readonly defaultTheme = 'modern';
   readonly defaultTemplate = 'default';
 
   // Root public domain used for generated blog subdomains
@@ -781,6 +781,56 @@ export class CmsService {
     if (current && current.id === blogId) {
       this.activeBlogSignal.set({ ...current, domain });
     }
+  }
+
+  async getTemplateConfig(blogId: string): Promise<TemplateConfig | null> {
+    const blog = this.blogsSignal().find((b) => b.id === blogId);
+    return blog?.templateConfig || null;
+  }
+
+  async setTemplateConfig(blogId: string, config: TemplateConfig): Promise<void> {
+    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+    await setDoc(blogDoc, { templateConfig: config }, { merge: true });
+
+    const current = this.activeBlogSignal();
+    if (current?.id === blogId) {
+      this.activeBlogSignal.set({ ...current, templateConfig: config });
+    }
+
+    const blogs = this.blogsSignal();
+    const updated = blogs.map((b) => (b.id === blogId ? { ...b, templateConfig: config } : b));
+    this.blogsSignal.set(updated);
+  }
+
+  async addSecondaryNavItem(blogId: string, item: NavigationItem): Promise<void> {
+    const config = await this.getTemplateConfig(blogId);
+    const secondaryNavItems = config?.secondaryNavItems || [];
+    const maxOrder = secondaryNavItems.length > 0 ? Math.max(...secondaryNavItems.map((i) => i.order)) : 0;
+    const newItem = { ...item, order: item.order || maxOrder + 1 };
+    await this.setTemplateConfig(blogId, {
+      ...config,
+      secondaryNavItems: [...secondaryNavItems, newItem]
+    });
+  }
+
+  async updateSecondaryNavItem(blogId: string, itemId: string, updated: Partial<NavigationItem>): Promise<void> {
+    const config = await this.getTemplateConfig(blogId);
+    const secondaryNavItems = config?.secondaryNavItems || [];
+    const newItems = secondaryNavItems.map((i) => (i.id === itemId ? { ...i, ...updated } : i));
+    await this.setTemplateConfig(blogId, {
+      ...config,
+      secondaryNavItems: newItems
+    });
+  }
+
+  async deleteSecondaryNavItem(blogId: string, itemId: string): Promise<void> {
+    const config = await this.getTemplateConfig(blogId);
+    const secondaryNavItems = config?.secondaryNavItems || [];
+    const newItems = secondaryNavItems.filter((i) => i.id !== itemId);
+    await this.setTemplateConfig(blogId, {
+      ...config,
+      secondaryNavItems: newItems
+    });
   }
 
   private loadPosts(): void {

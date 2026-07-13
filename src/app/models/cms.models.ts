@@ -28,6 +28,21 @@ export interface Page {
   updatedAt?: string;
 }
 
+export interface NavigationItem {
+  id: string;
+  label: string;
+  url?: string;
+  order: number;
+}
+
+export interface TemplateConfig {
+  topNavPageIds?: string[];
+  logoText?: string;
+  logoColor?: string;
+  secondaryNavItems?: NavigationItem[];
+  sidebarPageIds?: string[];
+}
+
 export interface Blog {
   id: string;
   uid?: string;
@@ -41,6 +56,7 @@ export interface Blog {
   theme?: string;
   template?: string;
   domain?: string;
+  templateConfig?: TemplateConfig;
 }
 
 export interface User {
