@@ -59,6 +59,33 @@ export interface Blog {
   templateConfig?: TemplateConfig;
 }
 
+export interface GlobalThemeSettings {
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    text: string;
+    background: string;
+    accent: string;
+    muted: string;
+    border: string;
+  };
+  fonts: {
+    family: string;
+    headingSize: string;
+    bodySize: string;
+    fontWeight: string;
+  };
+  spacing: {
+    borderRadius: string;
+    padding: string;
+    gap: string;
+  };
+  customCss: string;
+}
+
 export interface User {
   uid: string;
   email: string | null;

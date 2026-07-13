@@ -32,6 +32,7 @@ import { CmsService } from '../../services/cms.service';
         <li><a routerLink="/pages">Pages</a></li>
         <li><a routerLink="/dashboard">Layout</a></li>
         <li><a (click)="openTheme()">Theme</a></li>
+        <li><a routerLink="/dashboard/global-theme/settings">Global Theme</a></li>
         <li><a routerLink="/dashboard">Settings</a></li>
       </ul>
 

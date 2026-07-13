@@ -2,7 +2,7 @@
 import { collection, collectionData, Firestore, orderBy, query, where, getDocs, addDoc, setDoc, doc, getDoc, updateDoc, deleteDoc, limit } from '@angular/fire/firestore';
 import { Storage, getDownloadURL, ref, uploadString } from '@angular/fire/storage';
 import { catchError, map, of } from 'rxjs';
-import { Page, Post, Blog, TemplateConfig, NavigationItem } from '../models/cms.models';
+import { Page, Post, Blog, TemplateConfig, NavigationItem, GlobalThemeSettings } from '../models/cms.models';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -18,6 +18,7 @@ export class CmsService {
   readonly activeBlogSignal = signal<Blog | null>(null);
   readonly draftSignal = signal<Post | null>(null);
   readonly previewSignal = signal<Post | null>(null);
+  readonly globalThemeSignal = signal<GlobalThemeSettings | null>(null);
   readonly hostBlogSignal = computed(() => this.findBlogByHostName(this.getCurrentHostname()));
 
   readonly filteredPostsSignal = computed(() => {
@@ -831,6 +832,175 @@ export class CmsService {
       ...config,
       secondaryNavItems: newItems
     });
+  }
+
+  // Global Theme Settings Methods
+  async getGlobalThemeSettings(): Promise<GlobalThemeSettings> {
+    const cached = this.globalThemeSignal();
+    if (cached) return cached;
+
+    try {
+      const settingsDoc = doc(this.firestore, 'settings/global-theme');
+      const snapshot = await getDoc(settingsDoc);
+      
+      if (!snapshot.exists()) {
+        return this.getDefaultThemeSettings();
+      }
+
+      const data = snapshot.data() as GlobalThemeSettings;
+      this.globalThemeSignal.set(data);
+      return data;
+    } catch {
+      return this.getDefaultThemeSettings();
+    }
+  }
+
+  async updateGlobalThemeSettings(settings: GlobalThemeSettings): Promise<void> {
+    const settingsDoc = doc(this.firestore, 'settings/global-theme');
+    const data = {
+      ...settings,
+      updatedAt: new Date().toISOString()
+    };
+    await setDoc(settingsDoc, data, { merge: true });
+    this.globalThemeSignal.set(data);
+  }
+
+  generateThemeCss(settings: GlobalThemeSettings): string {
+    const vars = `
+      --primary-color: ${settings.colors.primary};
+      --secondary-color: ${settings.colors.secondary};
+      --text-color: ${settings.colors.text};
+      --bg-color: ${settings.colors.background};
+      --accent-color: ${settings.colors.accent};
+      --muted-color: ${settings.colors.muted};
+      --border-color: ${settings.colors.border};
+      --font-family: ${settings.fonts.family};
+      --heading-size: ${settings.fonts.headingSize};
+      --body-size: ${settings.fonts.bodySize};
+      --font-weight: ${settings.fonts.fontWeight};
+      --border-radius: ${settings.spacing.borderRadius};
+      --padding: ${settings.spacing.padding};
+      --gap: ${settings.spacing.gap};
+    `;
+
+    const defaultCss = `
+      :root {
+        ${vars}
+      }
+      
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        color: var(--text-color);
+        background: var(--bg-color);
+        font-family: var(--font-family);
+        font-size: var(--body-size);
+        line-height: 1.6;
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        font-size: var(--heading-size);
+        font-weight: var(--font-weight);
+      }
+      
+      a {
+        color: var(--accent-color);
+        text-decoration: none;
+      }
+      
+      a:hover {
+        text-decoration: underline;
+      }
+      
+      button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: var(--padding);
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-weight: var(--font-weight);
+      }
+      
+      button:hover {
+        opacity: 0.9;
+      }
+      
+      input, select, textarea {
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: var(--padding);
+        font-family: var(--font-family);
+      }
+      
+      .site-page {
+        color: var(--text-color);
+        background: var(--bg-color);
+        font-family: var(--font-family);
+      }
+      
+      .top-nav {
+        background: var(--secondary-color);
+        padding: var(--padding);
+      }
+      
+      .top-nav a {
+        color: white;
+        margin-right: var(--gap);
+      }
+      
+      .logo-text {
+        color: var(--primary-color);
+      }
+      
+      .secondary-nav {
+        background: var(--secondary-color);
+        padding: var(--padding);
+      }
+      
+      .nav-item {
+        color: white;
+        margin-right: var(--gap);
+      }
+      
+      .nav-item:hover {
+        color: var(--accent-color);
+      }
+      
+      ${settings.customCss || ''}
+    `;
+
+    return defaultCss;
+  }
+
+  private getDefaultThemeSettings(): GlobalThemeSettings {
+    return {
+      colors: {
+        primary: '#d32f2f',
+        secondary: '#1a1a1a',
+        text: '#1a1a1a',
+        background: '#f5f5f5',
+        accent: '#d32f2f',
+        muted: '#888',
+        border: '#ddd'
+      },
+      fonts: {
+        family: 'Arial, sans-serif',
+        headingSize: '2rem',
+        bodySize: '1rem',
+        fontWeight: '600'
+      },
+      spacing: {
+        borderRadius: '0.25rem',
+        padding: '1rem',
+        gap: '1rem'
+      },
+      customCss: ''
+    };
   }
 
   private loadPosts(): void {

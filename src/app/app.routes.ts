@@ -28,6 +28,7 @@ export const routes: Routes = [
   { path: 'dashboard/:blogId', component: DashboardComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/:blogId/theme', loadComponent: () => import('./pages/theme-settings/theme-settings.component').then(m => m.ThemeSettingsComponent), canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/:blogId/template-config', loadComponent: () => import('./pages/template-config/template-config.component').then(m => m.TemplateConfigComponent), canActivate: [authGuard, ensureBlogGuard] },
+  { path: 'dashboard/global-theme/settings', loadComponent: () => import('./pages/global-theme-config/global-theme-config.component').then(m => m.GlobalThemeConfigComponent), canActivate: [authGuard] },
   { path: 'posts', component: PostsListComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'posts/edit/:postId', component: NewPostComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'posts/new', component: NewPostComponent, canActivate: [authGuard, ensureBlogGuard] },
