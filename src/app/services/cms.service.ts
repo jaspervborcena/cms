@@ -210,6 +210,48 @@ export class CmsService {
     }
   }
 
+  async deleteBlogWithCascade(blogId: string): Promise<void> {
+    try {
+      // Delete all posts in the blog
+      const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
+      const postsSnapshot = await getDocs(postsCollection);
+      for (const postDoc of postsSnapshot.docs) {
+        await deleteDoc(postDoc.ref);
+      }
+
+      // Delete all pages related to this blog
+      const allPages = this.pagesSignal();
+      const blogPages = allPages.filter((p) => p.blogId === blogId);
+      for (const page of blogPages) {
+        if (page.id) {
+          const pageDocRef = doc(this.firestore, `pages/${page.id}`);
+          await deleteDoc(pageDocRef);
+        }
+      }
+
+      // Delete the blog itself
+      const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+      await deleteDoc(blogDoc);
+
+      // Update signals
+      const remaining = this.blogsSignal().filter((item) => item.id !== blogId);
+      this.blogsSignal.set(remaining);
+
+      const remainingPosts = this.postsSignal().filter((item) => item.blogId !== blogId);
+      this.postsSignal.set(remainingPosts);
+
+      const remainingPages = allPages.filter((p) => p.blogId !== blogId);
+      this.pagesSignal.set(remainingPages);
+
+      if (this.activeBlogSignal()?.id === blogId) {
+        this.activeBlogSignal.set(null);
+      }
+    } catch (error) {
+      console.error('Error deleting blog with cascade:', error);
+      throw error;
+    }
+  }
+
   setActiveBlogById(blogId: string): void {
     const found = this.blogsSignal().find((b) => b.id === blogId);
     if (found) {
@@ -1054,5 +1096,30 @@ export class CmsService {
       createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
       updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined
     };
+  }
+
+  async saveBlogThemeSettings(blogId: string, themeVars: Record<string, unknown>): Promise<void> {
+    try {
+      const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+      await setDoc(blogDoc, { themeSettings: themeVars }, { merge: true });
+    } catch (error) {
+      console.error('Error saving blog theme settings:', error);
+      throw error;
+    }
+  }
+
+  async loadBlogThemeSettings(blogId: string): Promise<Record<string, unknown>> {
+    try {
+      const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+      const snapshot = await getDoc(blogDoc);
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        return data['themeSettings'] || {};
+      }
+      return {};
+    } catch (error) {
+      console.error('Error loading blog theme settings:', error);
+      return {};
+    }
   }
 }

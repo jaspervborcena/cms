@@ -44,21 +44,32 @@ import { CmsService } from '../../services/cms.service';
           <button class="update-btn">Update</button>
         </div>
 
-        <!-- POSTS SECTION -->
-        <section class="posts-section">
-          <div class="section-header">
-            <h2>RECENT POSTS</h2>
-            <a [routerLink]="['/site', blog?.id]" class="view-more">View More</a>
-          </div>
+        <!-- CONTENT GRID -->
+        <div class="content-grid" [class.sidebar-hidden]="pages.length === 0">
+          <!-- POSTS SECTION -->
+          <section class="posts-section">
+            <div class="section-header">
+              <h2>RECENT POSTS</h2>
+              <a [routerLink]="['/site', blog?.id]" class="view-more">View More</a>
+            </div>
 
-          <!-- ALL POSTS -->
-          <ul class="post-list">
-            <li *ngFor="let post of publishedPosts">
-              <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
-            </li>
-            <li *ngIf="publishedPosts.length === 0" class="empty">No posts yet.</li>
-          </ul>
-        </section>
+            <!-- ALL POSTS -->
+            <ul class="post-list">
+              <li *ngFor="let post of publishedPosts">
+                <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
+              </li>
+              <li *ngIf="publishedPosts.length === 0" class="empty">No posts yet.</li>
+            </ul>
+          </section>
+
+          <!-- PAGES SIDEBAR -->
+          <aside class="sidebar-panel" *ngIf="pages.length > 0">
+            <div class="sidebar-widget" *ngFor="let page of pages">
+              <h3 class="widget-title">{{ page.title }}</h3>
+              <div class="widget-content">{{ page.excerpt || page.content | slice: 0:150 }}...</div>
+            </div>
+          </aside>
+        </div>
       </main>
 
       <!-- FOOTER -->
@@ -89,6 +100,9 @@ import { CmsService } from '../../services/cms.service';
     `.update-banner { padding: 1rem 0 1.5rem 0; margin-bottom: 1rem; }`,
     `.update-btn { padding: 0.5rem 1rem; background: var(--secondary-color, #2b2b2b); color: #fff; border: none; cursor: pointer; font-weight: 700; border-radius: var(--border-radius, 0.25rem); }`,
     
+    `.content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: var(--gap, 1rem); }`,
+    `.content-grid.sidebar-hidden { grid-template-columns: 1fr; }`,
+    
     `.posts-section { }`,
     `.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }`,
     `.section-header h2 { margin: 0; font-size: var(--heading-size, 1.4rem); font-weight: 700; text-transform: uppercase; color: var(--text-color, #1a1a1a); }`,
@@ -100,10 +114,15 @@ import { CmsService } from '../../services/cms.service';
     `.post-list a { color: var(--text-color, #1a1a1a); text-decoration: none; font-weight: 600; }`,
     `.post-list a:hover { color: var(--accent-color, #d32f2f); }`,
     
+    `.sidebar-panel { display: grid; gap: var(--gap, 1rem); }`,
+    `.sidebar-widget { background: var(--secondary-color, #1a1a1a); padding: var(--padding, 1rem); border-radius: var(--border-radius, 0.25rem); }`,
+    `.widget-title { margin: 0 0 0.75rem 0; color: #fff; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; border-bottom: 2px solid var(--primary-color, #d32f2f); padding-bottom: 0.5rem; }`,
+    `.widget-content { color: var(--muted-color, #aaa); font-size: 0.9rem; line-height: 1.5; }`,
+    
     `.site-footer { background: var(--secondary-color, #1a1a1a); padding: 2rem 1rem; color: var(--muted-color, #aaa); text-align: center; font-size: 0.9rem; }`,
     `.site-footer p { margin: 0; }`,
     
-    `@media (max-width: 768px) { .secondary-nav { flex-wrap: wrap; } .top-nav { flex-wrap: wrap; } }`
+    `@media (max-width: 768px) { .content-grid { grid-template-columns: 1fr; } .secondary-nav { flex-wrap: wrap; } .top-nav { flex-wrap: wrap; } }`
   ]
 })
 export class DefaultSiteTemplateComponent {

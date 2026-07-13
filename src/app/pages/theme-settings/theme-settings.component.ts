@@ -4,6 +4,17 @@ import { FormsModule } from '@angular/forms';
 import { CmsService } from '../../services/cms.service';
 import { Router } from '@angular/router';
 
+interface BlogTheme {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  textColor: string;
+  backgroundColor: string;
+  fontFamily: string;
+  borderRadius: string;
+  customCss: string;
+}
+
 @Component({
   selector: 'app-theme-settings',
   standalone: true,
@@ -11,7 +22,7 @@ import { Router } from '@angular/router';
   template: `
     <section class="theme-editor">
       <h2>Theme CSS Editor</h2>
-      <p>Modify the default theme CSS for your blog.</p>
+      <p>Modify the theme CSS for <strong>{{ cms.activeBlogSignal()?.name }}</strong>.</p>
       
       <div *ngIf="cms.activeBlogSignal() as blog; else noBlog" class="editor-container">
         <div class="editor-section">
@@ -68,7 +79,7 @@ import { Router } from '@angular/router';
 
         <div class="editor-section">
           <h3>Custom CSS</h3>
-          <textarea [(ngModel)]="customCss" class="css-editor" placeholder="Add custom CSS here..."></textarea>
+          <textarea [(ngModel)]="themeVars.customCss" class="css-editor" placeholder="Add custom CSS here..."></textarea>
         </div>
 
         <div class="preview-section">
@@ -99,60 +110,67 @@ import { Router } from '@angular/router';
     </section>
   `,
   styles: [
-    `.theme-editor { max-width: 1000px; padding: 2rem; }`,
-    `.editor-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem; }`,
-    `.editor-section { background: #fff; border: 1px solid #ddd; border-radius: 0.5rem; padding: 1.5rem; }`,
-    `.editor-section h3 { margin-top: 0; font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; }`,
-    `.css-variables { display: grid; gap: 1rem; }`,
-    `.variable-group { display: flex; flex-direction: column; gap: 0.5rem; }`,
-    `.variable-group label { font-weight: 600; font-size: 0.9rem; }`,
-    `.variable-group input { padding: 0.5rem; border: 1px solid #ddd; border-radius: 0.3rem; }`,
-    `.color-input { width: 60px; height: 40px; cursor: pointer; }`,
-    `.color-value { font-family: monospace; }`,
+    `.theme-editor { max-width:1000px; padding:2rem; }`,
+    `.editor-container { display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:2rem; }`,
+    `.editor-section { background:#fff; border:1px solid #ddd; border-radius:0.5rem; padding:1.5rem; }`,
+    `.editor-section h3 { margin-top:0; font-size:1.1rem; font-weight:600; margin-bottom:1.5rem; }`,
+    `.css-variables { display:grid; gap:1rem; }`,
+    `.variable-group { display:flex; flex-direction:column; gap:0.5rem; }`,
+    `.variable-group label { font-weight:600; font-size:0.9rem; }`,
+    `.variable-group input { padding:0.5rem; border:1px solid #ddd; border-radius:0.3rem; }`,
+    `.color-input { width:60px; height:40px; cursor:pointer; }`,
+    `.color-value { font-family:monospace; }`,
     `.text-input { }`,
-    `.css-editor { width: 100%; height: 400px; padding: 1rem; border: 1px solid #ddd; border-radius: 0.3rem; font-family: monospace; font-size: 0.85rem; resize: vertical; }`,
-    `.preview-section { grid-column: 1 / -1; background: #fff; border: 1px solid #ddd; border-radius: 0.5rem; padding: 1.5rem; }`,
-    `.preview { border: 1px solid #ddd; border-radius: 0.3rem; overflow: hidden; }`,
-    `.preview-nav { padding: 1rem; display: flex; gap: 1rem; }`,
-    `.preview-nav a { text-decoration: none; text-transform: uppercase; font-weight: 600; font-size: 0.8rem; }`,
-    `.preview-logo { padding: 2rem 1rem; text-align: center; }`,
-    `.preview-logo-text { margin: 0; font-size: 2rem; font-weight: bold; }`,
-    `.preview-content { padding: 1.5rem; }`,
-    `.preview-content h3 { margin-top: 0; }`,
-    `.action-buttons { grid-column: 1 / -1; display: flex; gap: 1rem; margin-top: 1rem; }`,
-    `.btn { padding: 0.75rem 1.5rem; border: none; border-radius: 0.4rem; font-weight: 600; cursor: pointer; }`,
-    `.btn-primary { background: #1d4ed8; color: white; }`,
-    `.btn-primary:hover { background: #1e40af; }`,
-    `.btn-secondary { background: #e5e7eb; color: #374151; }`,
-    `.btn-secondary:hover { background: #d1d5db; }`,
-    `@media (max-width: 768px) { .editor-container { grid-template-columns: 1fr; } }`
+    `.css-editor { width:100%; height:400px; padding:1rem; border:1px solid #ddd; border-radius:0.3rem; font-family:monospace; font-size:0.85rem; resize:vertical; }`,
+    `.preview-section { grid-column:1 / -1; background:#fff; border:1px solid #ddd; border-radius:0.5rem; padding:1.5rem; }`,
+    `.preview { border:1px solid #ddd; border-radius:0.3rem; overflow:hidden; }`,
+    `.preview-nav { padding:1rem; display:flex; gap:1rem; }`,
+    `.preview-nav a { text-decoration:none; text-transform:uppercase; font-weight:600; font-size:0.8rem; }`,
+    `.preview-logo { padding:2rem 1rem; text-align:center; }`,
+    `.preview-logo-text { margin:0; font-size:2rem; font-weight:bold; }`,
+    `.preview-content { padding:1.5rem; }`,
+    `.preview-content h3 { margin-top:0; }`,
+    `.action-buttons { grid-column:1 / -1; display:flex; gap:1rem; margin-top:1rem; }`,
+    `.btn { padding:0.75rem 1.5rem; border:none; border-radius:0.4rem; font-weight:600; cursor:pointer; }`,
+    `.btn-primary { background:#1d4ed8; color:white; }`,
+    `.btn-primary:hover { background:#1e40af; }`,
+    `.btn-secondary { background:#e5e7eb; color:#374151; }`,
+    `.btn-secondary:hover { background:#d1d5db; }`,
+    `@media (max-width:768px) { .editor-container { grid-template-columns:1fr; } }`
   ]
 })
 export class ThemeSettingsComponent implements OnInit {
   readonly cms = inject(CmsService);
   private router = inject(Router);
 
-  themeVars = {
+  themeVars: BlogTheme = {
     primaryColor: '#d32f2f',
     secondaryColor: '#2b2b2b',
     accentColor: '#d32f2f',
     textColor: '#1a1a1a',
     backgroundColor: '#f5f5f5',
     fontFamily: 'Arial, sans-serif',
-    borderRadius: '0.25rem'
+    borderRadius: '0.25rem',
+    customCss: ''
   };
-
-  customCss = '';
 
   ngOnInit() {
     this.loadTheme();
   }
 
   loadTheme() {
-    // Load saved theme from storage or use defaults
     const blog = this.cms.activeBlogSignal();
-    if (blog) {
-      // In a real app, load from Firestore
+    if (!blog) return;
+
+    // Load theme from localStorage for now (can be saved to Firestore later)
+    const key = `blog-theme-${blog.id}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        this.themeVars = JSON.parse(saved);
+      } catch {
+        // Use defaults if parsing fails
+      }
     }
   }
 
@@ -164,8 +182,17 @@ export class ThemeSettingsComponent implements OnInit {
   }
 
   async saveTheme(blogId: string) {
-    // Save theme to Firestore
-    console.log('Saving theme:', { themeVars: this.themeVars, customCss: this.customCss });
+    // Save theme to localStorage per blog
+    const key = `blog-theme-${blogId}`;
+    localStorage.setItem(key, JSON.stringify(this.themeVars));
+    
+    // Optionally save to Firestore for persistence
+    try {
+      await this.cms.saveBlogThemeSettings(blogId, this.themeVars);
+    } catch (error) {
+      console.warn('Could not save theme to Firestore:', error);
+    }
+
     this.router.navigate(['/dashboard', blogId]);
   }
 

@@ -18,6 +18,7 @@ export class AuthService {
 
   readonly authSignal = signal<AuthUser | null>(this.readStoredUser());
   readonly isAuthenticated = computed(() => !!this.authSignal());
+  readonly isFirebaseInitialized = computed(() => !!this.firebaseAuth);
 
   constructor() {
     if (this.firebaseAuth) {
@@ -31,8 +32,9 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<void> {
     if (!this.firebaseAuth) {
+      // Demo mode - create a local session
       const authUser = {
-        uid: `local-${email}`,
+        uid: `local-${Date.now()}`,
         email,
         displayName: email.split('@')[0]
       };
