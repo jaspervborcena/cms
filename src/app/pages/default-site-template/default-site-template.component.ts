@@ -85,6 +85,13 @@ import { CmsService } from '../../services/cms.service';
       <footer class="site-footer">
         <p>© {{ blog?.name }} · Content and layout are styled by your chosen theme and template.</p>
       </footer>
+      <!-- DEBUG PANEL: remove in production -->
+      <div class="debug-overlay" *ngIf="true">
+        <details style="font-size:12px;color:#fff;background:rgba(0,0,0,0.6);padding:8px;border-radius:6px;position:fixed;bottom:12px;right:12px;z-index:9999;max-width:420px;">
+          <summary style="cursor:pointer;color:#fff;">Debug: templateConfig / pages / posts</summary>
+          <pre style="white-space:pre-wrap;word-break:break-word;color:#fff;margin-top:8px;max-height:320px;overflow:auto;">{{ debugJson() | json }}</pre>
+        </details>
+      </div>
     </section>
   `,
   styles: [
@@ -167,6 +174,15 @@ export class DefaultSiteTemplateComponent implements OnChanges {
       topNavPageIds: this.blog?.templateConfig?.topNavPageIds,
       secondaryNavItems: this.blog?.templateConfig?.secondaryNavItems
     });
+  }
+
+  // Temporary debug helper rendered on the public page to inspect live data
+  debugJson(): any {
+    return {
+      templateConfig: this.blog?.templateConfig || {},
+      pages: this.pages || [],
+      publishedPosts: this.publishedPosts || []
+    };
   }
 
   private async loadGlobalThemeCss(): Promise<void> {
