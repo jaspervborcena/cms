@@ -1098,7 +1098,7 @@ export class CmsService {
     };
   }
 
-  async saveBlogThemeSettings(blogId: string, themeVars: Record<string, unknown>): Promise<void> {
+  async saveBlogThemeSettings(blogId: string, themeVars: any): Promise<void> {
     try {
       const blogDoc = doc(this.firestore, `blogs/${blogId}`);
       await setDoc(blogDoc, { themeSettings: themeVars }, { merge: true });

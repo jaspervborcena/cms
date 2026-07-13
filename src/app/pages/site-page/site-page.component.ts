@@ -3,12 +3,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Page } from '../../models/cms.models';
 import { CmsService } from '../../services/cms.service';
-import { DefaultSiteTemplateComponent } from '../default-site-template/default-site-template.component';
 
 @Component({
   selector: 'app-site-page',
   standalone: true,
-  imports: [CommonModule, DefaultSiteTemplateComponent],
+  imports: [CommonModule],
   template: `
     <div *ngIf="blog(); else missing">
       <ng-container #templateContainer></ng-container>
