@@ -19,7 +19,7 @@ import { CmsService } from '../../services/cms.service';
       <div *ngIf="!cms.activeBlogSignal()" class="empty-state">
         <h3>No blog selected</h3>
         <p>Please create a blog first.</p>
-        <a routerLink="/onboarding" class="btn">Create blog</a>
+        <a routerLink="/dashboard" class="btn">Create blog</a>
       </div>
 
       <div *ngIf="cms.activeBlogSignal() && cms.filteredPostsSignal().length === 0" class="empty-state">

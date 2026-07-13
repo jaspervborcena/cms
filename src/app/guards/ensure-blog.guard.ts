@@ -17,6 +17,6 @@ export const ensureBlogGuard: CanActivateFn = async (route: ActivatedRouteSnapsh
     return true;
   }
 
-  router.navigate(['/onboarding']);
+  router.navigate(['/dashboard']);
   return false;
 };

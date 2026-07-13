@@ -24,7 +24,7 @@ import { AuthService } from '../../services/auth.service';
             <h2>No blog selected</h2>
             <p>Create your first blog to unlock the dashboard features.</p>
             <div class="actions">
-              <a routerLink="/onboarding" class="btn">Create a blog</a>
+              <a routerLink="/dashboard" class="btn">Create a blog</a>
             </div>
           </div>
 

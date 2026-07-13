@@ -21,18 +21,14 @@ import { CmsService } from '../../services/cms.service';
             </div>
           </li>
         </ul>
-        <a routerLink="/onboarding" class="btn ghost">+ New Blog</a>
+        <a routerLink="/dashboard" class="btn ghost">+ New Blog</a>
       </div>
 
       <ul class="main-links">
         <li><a routerLink="/posts">Posts</a></li>
-        <li><a routerLink="/dashboard">Stats</a></li>
-        <li><a routerLink="/dashboard">Comments</a></li>
-        <li><a routerLink="/dashboard">Earnings</a></li>
-        <li><a routerLink="/pages">Pages</a></li>
-        <li><a routerLink="/dashboard">Layout</a></li>
+        <li><a routerLink="/dashboard">Dashboard</a></li>
         <li><a (click)="openTheme()">Theme</a></li>
-        <li><a routerLink="/dashboard/global-theme/settings">Global Theme</a></li>
+        <li><a (click)="openTemplate()">Template</a></li>
         <li><a routerLink="/dashboard">Settings</a></li>
       </ul>
 
@@ -84,10 +80,14 @@ export class AdminNavComponent {
     }
     this.router.navigate(['/posts/new']);
   }
-
   openTheme() {
     const blog = this.cms.activeBlogSignal();
     if (!blog) return;
     this.router.navigate(['/dashboard', blog.id, 'theme']);
   }
-}
+
+  openTemplate() {
+    const blog = this.cms.activeBlogSignal();
+    if (!blog) return;
+    this.router.navigate(['/dashboard', blog.id, 'template-designer']);
+  }}

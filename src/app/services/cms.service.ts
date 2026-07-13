@@ -174,17 +174,16 @@ export class CmsService {
     return newBlog;
   }
 
-  async updateBlog(blogId: string, data: Partial<Pick<Blog, 'name' | 'slug' | 'description' | 'category' | 'theme' | 'template' | 'domain' | 'ownerUid'>>): Promise<Blog | null> {
+  async updateBlog(blogId: string, data: Partial<Pick<Blog, 'name' | 'slug' | 'description' | 'category' | 'domain' | 'ownerUid'>>): Promise<Blog | null> {
     const blog = this.blogsSignal().find((item) => item.id === blogId);
     if (!blog) return null;
 
     const updatedBlog: Blog = {
-
       ...blog,
       ...data,
       slug: data.slug ? this.slugify(data.slug) : blog.slug,
-      theme: data.theme ?? blog.theme ?? this.defaultTheme,
-      template: data.template ?? blog.template ?? this.defaultTemplate,
+      theme: this.defaultTheme,
+      template: this.defaultTemplate,
       updatedAt: new Date().toISOString()
     };
 

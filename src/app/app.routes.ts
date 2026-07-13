@@ -2,11 +2,8 @@ import { Routes } from '@angular/router';
 import { LandingComponent } from './pages/landing/landing.component';
 import { AuthComponent } from './pages/auth/auth.component';
 import { DashboardComponent } from './pages/dashboard/dashboard.component';
-import { OnboardingComponent } from './pages/onboarding/onboarding.component';
 import { PreviewPageComponent } from './pages/preview-page/preview-page.component';
 import { SitePageComponent } from './pages/site-page/site-page.component';
-import { PageDetailComponent } from './pages/page-detail/page-detail.component';
-import { PagesPageComponent } from './pages/pages-page/pages-page.component';
 import { PostDetailComponent } from './pages/post-detail/post-detail.component';
 import { PublicHostComponent } from './pages/public-host/public-host.component';
 import { authGuard } from './guards/auth.guard';
@@ -18,17 +15,14 @@ export const routes: Routes = [
   { path: '', component: LandingComponent },
   { path: 'login', component: AuthComponent },
   { path: 'register', component: AuthComponent },
-  { path: 'onboarding', component: OnboardingComponent, canActivate: [authGuard] },
-  { path: 'preview/:blogId/:postId', component: PreviewPageComponent, canActivate: [authGuard, ensureBlogGuard] },
-  { path: 'site/:blogId', component: SitePageComponent },
-  { path: 'site/:blogId/:slug', component: PostDetailComponent },
-  { path: 'pages', component: PagesPageComponent },
-  { path: 'pages/:slug', component: PageDetailComponent },
   { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/:blogId', component: DashboardComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/:blogId/theme', loadComponent: () => import('./pages/theme-settings/theme-settings.component').then(m => m.ThemeSettingsComponent), canActivate: [authGuard, ensureBlogGuard] },
-  { path: 'dashboard/:blogId/template-config', loadComponent: () => import('./pages/template-config/template-config.component').then(m => m.TemplateConfigComponent), canActivate: [authGuard, ensureBlogGuard] },
+  { path: 'dashboard/:blogId/template-designer', loadComponent: () => import('./pages/template-designer/template-designer.component').then(m => m.TemplateDesignerComponent), canActivate: [authGuard, ensureBlogGuard] },
   { path: 'dashboard/global-theme/settings', loadComponent: () => import('./pages/global-theme-config/global-theme-config.component').then(m => m.GlobalThemeConfigComponent), canActivate: [authGuard] },
+  { path: 'site/:blogId', component: SitePageComponent },
+  { path: 'site/:blogId/:slug', component: PostDetailComponent },
+  { path: 'preview/:blogId/:postId', component: PreviewPageComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'posts', component: PostsListComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'posts/edit/:postId', component: NewPostComponent, canActivate: [authGuard, ensureBlogGuard] },
   { path: 'posts/new', component: NewPostComponent, canActivate: [authGuard, ensureBlogGuard] },

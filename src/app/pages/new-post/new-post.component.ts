@@ -123,7 +123,7 @@ export class NewPostComponent implements OnInit {
   async saveDraft(): Promise<void> {
     const blog = this.cms.activeBlogSignal();
     if (!blog) {
-      this.router.navigate(['/onboarding']);
+      this.router.navigate(['/dashboard']);
       return;
     }
 
@@ -154,7 +154,7 @@ export class NewPostComponent implements OnInit {
   async preview(): Promise<void> {
     const blog = this.cms.activeBlogSignal();
     if (!blog) {
-      this.router.navigate(['/onboarding']);
+      this.router.navigate(['/dashboard']);
       return;
     }
 
@@ -191,7 +191,7 @@ export class NewPostComponent implements OnInit {
   async publish(): Promise<void> {
     const blog = this.cms.activeBlogSignal();
     if (!blog) {
-      this.router.navigate(['/onboarding']);
+      this.router.navigate(['/dashboard']);
       return;
     }
 
