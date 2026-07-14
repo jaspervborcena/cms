@@ -53,24 +53,24 @@ import { CmsService } from '../../services/cms.service';
           <!-- POSTS SECTION -->
           <section class="posts-section">
             <div class="section-header">
-              <h2 *ngIf="!previewPost">RECENT POSTS</h2>
-              <h2 *ngIf="previewPost">{{ previewPost.title }}</h2>
+              <h2 *ngIf="primaryPost; else recentTitle">{{ primaryPost?.title }}</h2>
+              <ng-template #recentTitle>
+                <h2>RECENT POSTS</h2>
+              </ng-template>
             </div>
 
             <div class="post-list">
-              <ng-container>
-                <article *ngFor="let post of publishedPosts" class="post-item">
-                  <h3 class="post-title"><a href="/site/{{ blog?.id }}/{{ post.slug }}">{{ post.title }}</a></h3>
-                  <div class="post-excerpt">{{ post.excerpt || (post.content | slice:0:250) }}</div>
+              <ng-container *ngIf="primaryPost; else noPosts">
+                <article class="post-item featured">
+                  <h3 class="post-title">{{ primaryPost.title }}</h3>
+                  <p class="post-meta">{{ primaryPost.category }} · {{ primaryPost.publishedAt ? (primaryPost.publishedAt | date:'mediumDate') : 'Draft' }}</p>
+                  <div class="post-content" [innerHTML]="primaryPost.content"></div>
                 </article>
-
-                <div *ngIf="publishedPosts.length === 0" class="empty">
-                  <ng-container *ngIf="previewPost; else noPosts">
-                    <div class="post-preview-content" [innerHTML]="previewPost.content"></div>
-                  </ng-container>
-                  <ng-template #noPosts>No posts yet.</ng-template>
-                </div>
               </ng-container>
+
+              <ng-template #noPosts>
+                <div class="empty">No posts yet.</div>
+              </ng-template>
             </div>
           </section>
 
@@ -178,6 +178,11 @@ export class DefaultSiteTemplateComponent implements OnChanges {
 
   get otherPosts(): Post[] {
     return this.publishedPosts.length > 1 ? this.publishedPosts.slice(1) : [];
+  }
+
+  get primaryPost(): Post | null {
+    if (this.previewPost) return this.previewPost;
+    return this.publishedPosts.length > 0 ? this.publishedPosts[0] : null;
   }
 
   previewPostLink(): string {
