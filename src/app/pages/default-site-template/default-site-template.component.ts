@@ -36,7 +36,7 @@ import { CmsService } from '../../services/cms.service';
       <!-- SEARCH & UPDATE BAR -->
       <nav class="secondary-nav">
         <a href="#" class="nav-icon">⌂</a>
-        <ng-container *ngIf="secondaryNavItems?.length">
+        <ng-container *ngIf="secondaryNavItems.length">
           <a *ngFor="let item of secondaryNavItems" [attr.href]="item.url || '#'" class="nav-item">{{ item.label }}</a>
         </ng-container>
         <div class="search-container">
@@ -53,7 +53,7 @@ import { CmsService } from '../../services/cms.service';
           <!-- POSTS SECTION -->
           <section class="posts-section">
             <div class="section-header">
-              <h2 *ngIf="primaryPost; else recentTitle">{{ primaryPost?.title }}</h2>
+              <h2 *ngIf="primaryPost; else recentTitle">{{ primaryPost.title }}</h2>
               <ng-template #recentTitle>
                 <h2>RECENT POSTS</h2>
               </ng-template>
@@ -164,6 +164,7 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   @Input() themeCssUrl = '';
   
   globalThemeCss = '';
+  hydratedPrimaryPost: Post | null = null;
 
   get topNavPages(): Page[] {
     if (!this.blog?.templateConfig?.topNavPageIds || !this.pages) return [];
@@ -181,6 +182,10 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   }
 
   get primaryPost(): Post | null {
+    if (this.hydratedPrimaryPost) {
+      return this.hydratedPrimaryPost;
+    }
+
     if (this.previewPost) return this.previewPost;
     return this.publishedPosts.length > 0 ? this.publishedPosts[0] : null;
   }
@@ -195,6 +200,15 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    const shouldHydrate =
+      !!changes['previewPost'] ||
+      !!changes['publishedPosts'] ||
+      !!changes['blog'];
+
+    if (shouldHydrate) {
+      void this.ensureHydratedPrimaryPost();
+    }
+
     const changeSummary = Object.keys(changes).reduce((summary, key) => {
       const change = changes[key];
       summary[key] = {
@@ -225,6 +239,23 @@ export class DefaultSiteTemplateComponent implements OnChanges {
       pages: this.pages || [],
       publishedPosts: this.publishedPosts || []
     };
+  }
+
+  private async ensureHydratedPrimaryPost(): Promise<void> {
+    const candidate = this.previewPost ?? (this.publishedPosts.length > 0 ? this.publishedPosts[0] : null);
+    if (!candidate || candidate.content) {
+      this.hydratedPrimaryPost = candidate;
+      return;
+    }
+
+    const blogId = this.blog?.id;
+    if (!blogId) {
+      this.hydratedPrimaryPost = candidate;
+      return;
+    }
+
+    const hydrated = await this.cms.loadPostById(blogId, candidate.id);
+    this.hydratedPrimaryPost = hydrated ?? candidate;
   }
 
   private async loadGlobalThemeCss(): Promise<void> {

@@ -293,7 +293,7 @@ export class CmsService {
 
   private async loadPostsForBlog(blogId: string): Promise<void> {
     const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
-    collectionData(query(postsCollection, orderBy('publishedAt', 'desc')), { idField: 'id' })
+    collectionData(query(postsCollection, orderBy('updatedAt', 'desc')), { idField: 'id' })
       .pipe(
         map((items: Array<Record<string, unknown>>) => items.map((item) => ({ ...this.normalizePost(item), blogId } as Post))),
         catchError(() => of([] as Post[]))
@@ -308,8 +308,8 @@ export class CmsService {
   async fetchPostsForBlog(blogId: string, limitCount?: number): Promise<Post[]> {
     const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
     const q = limitCount && limitCount > 0
-      ? query(postsCollection, orderBy('publishedAt', 'desc'), limit(limitCount))
-      : query(postsCollection, orderBy('publishedAt', 'desc'));
+      ? query(postsCollection, orderBy('updatedAt', 'desc'), limit(limitCount))
+      : query(postsCollection, orderBy('updatedAt', 'desc'));
 
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
@@ -349,7 +349,8 @@ export class CmsService {
       blogId,
       status,
       views: 0,
-      createdAt: now
+      createdAt: now,
+      updatedAt: now
     };
 
     if (status === 'published') {
@@ -377,11 +378,13 @@ export class CmsService {
     const post = this.postsSignal().find((item) => item.id === postId && item.blogId === blogId);
     if (!post) return null;
 
+    const now = new Date().toISOString();
     const updated: Post = {
       ...post,
       ...data,
-      publishedAt: data.status === 'published' ? data.publishedAt ?? new Date().toISOString() : post.publishedAt,
+      publishedAt: data.status === 'published' ? data.publishedAt ?? now : post.publishedAt,
       createdAt: post.createdAt ?? new Date().toISOString(),
+      updatedAt: now,
       content: data.content ?? post.content,
       contentUrl: post.contentUrl
     };
@@ -391,7 +394,8 @@ export class CmsService {
       excerpt: updated.excerpt,
       category: updated.category,
       status: updated.status,
-      publishedAt: updated.publishedAt
+      publishedAt: updated.publishedAt,
+      updatedAt: updated.updatedAt
     };
 
     if (data.content !== undefined) {
@@ -456,7 +460,7 @@ export class CmsService {
     if (!snapshot.exists()) return null;
 
     const data = snapshot.data() as Record<string, unknown>;
-    const post = await this.hydratePostContent(this.normalizePost({ ...data, id: snapshot.id }));
+    const post = await this.hydratePostContent({ ...this.normalizePost({ ...data, id: snapshot.id }), blogId });
     this.previewSignal.set(post);
     return post;
   }
@@ -477,7 +481,7 @@ export class CmsService {
     const snapshot = await getDoc(postDoc);
     if (!snapshot.exists()) return null;
 
-    const post = await this.hydratePostContent(this.normalizePost({ ...snapshot.data(), id: snapshot.id }));
+    const post = await this.hydratePostContent({ ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), blogId });
     this.postsSignal.set([post, ...this.postsSignal()]);
     return post;
   }
@@ -496,7 +500,7 @@ export class CmsService {
     if (snapshot.empty) return null;
 
     const docSnap = snapshot.docs[0];
-    const post = await this.hydratePostContent(this.normalizePost({ ...docSnap.data(), id: docSnap.id }));
+    const post = await this.hydratePostContent({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), blogId });
     this.postsSignal.set([post, ...this.postsSignal()]);
     return post;
   }
