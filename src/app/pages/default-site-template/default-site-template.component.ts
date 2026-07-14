@@ -1,13 +1,12 @@
 import { Component, Input, inject, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { Blog, Page, Post } from '../../models/cms.models';
 import { CmsService } from '../../services/cms.service';
 
 @Component({
   selector: 'app-default-site-template',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   template: `
     <style [innerHTML]="globalThemeCss"></style>
     <section class="site-page">
@@ -15,9 +14,9 @@ import { CmsService } from '../../services/cms.service';
 
       <!-- TOP NAVIGATION -->
       <nav class="top-nav">
-        <a [routerLink]="['/site', blog?.id]" class="nav-link">HOME</a>
+        <a href="/site/{{ blog?.id }}" class="nav-link">HOME</a>
         <ng-container *ngIf="topNavPages.length; else noTopNav">
-          <a *ngFor="let p of topNavPages" [routerLink]="['/site', blog?.id, p.slug]" class="nav-link">{{ p.title }}</a>
+          <a *ngFor="let p of topNavPages" href="/site/{{ blog?.id }}/{{ p.slug }}" class="nav-link">{{ p.title }}</a>
         </ng-container>
         <ng-template #noTopNav>
           <!-- no additional top nav pages configured -->
@@ -59,24 +58,32 @@ import { CmsService } from '../../services/cms.service';
           <section class="posts-section">
             <div class="section-header">
               <h2>RECENT POSTS</h2>
-              <a [routerLink]="['/site', blog?.id]" class="view-more">View More</a>
+              <a href="/site/{{ blog?.id }}" class="view-more">View More</a>
             </div>
               <!-- ALL POSTS -->
               <div class="post-list">
                 <article *ngFor="let post of publishedPosts" class="post-item">
-                  <h3 class="post-title"><a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a></h3>
+                  <h3 class="post-title"><a href="/site/{{ blog?.id }}/{{ post.slug }}">{{ post.title }}</a></h3>
                   <div class="post-excerpt">{{ post.excerpt || (post.content | slice:0:250) }}</div>
                 </article>
                 <div *ngIf="publishedPosts.length === 0" class="empty">No posts yet.</div>
               </div>
           </section>
 
-          <!-- PAGES SIDEBAR -->
-          <aside class="sidebar-panel" *ngIf="pages.length > 0">
-            <div class="sidebar-widget" *ngFor="let page of pages">
-              <h3 class="widget-title">{{ page.title }}</h3>
-              <div class="widget-content">{{ page.excerpt || page.content | slice: 0:150 }}...</div>
-            </div>
+          <!-- OTHER POSTS SIDEBAR -->
+          <aside class="sidebar-panel">
+            <ng-container *ngIf="otherPosts.length > 0; else noOtherPosts">
+              <div class="sidebar-widget" *ngFor="let post of otherPosts">
+                <h3 class="widget-title">{{ post.title }}</h3>
+                <div class="widget-content">{{ post.excerpt || post.content | slice: 0:150 }}...</div>
+              </div>
+            </ng-container>
+            <ng-template #noOtherPosts>
+              <div class="sidebar-widget">
+                <h3 class="widget-title">Other Posts</h3>
+                <div class="widget-content">No other posts yet.</div>
+              </div>
+            </ng-template>
           </aside>
         </div>
       </main>
@@ -160,6 +167,10 @@ export class DefaultSiteTemplateComponent implements OnChanges {
 
   get secondaryNavItems() {
     return this.blog?.templateConfig?.secondaryNavItems || [];
+  }
+
+  get otherPosts(): Post[] {
+    return this.publishedPosts.length > 1 ? this.publishedPosts.slice(1) : [];
   }
 
   constructor() {
