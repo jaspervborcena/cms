@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CmsService } from '../../services/cms.service';
@@ -76,10 +76,18 @@ export class PreviewPageComponent implements OnInit {
       return;
     }
 
-    this.blog = this.service.blogsSignal().find((b) => b.id === blogId) ?? null;
-    this.themeCssUrl = this.service.getThemeCssUrl(this.blog?.theme);
-    this.pages = this.service.pagesSignal().filter((page) => page.blogId === blogId);
-    this.publishedPosts = this.service.postsSignal().filter((post) => post.blogId === blogId && post.status === 'published');
+    this.service.setActiveBlogById(blogId);
+
+    effect(() => {
+      this.blog = this.service.blogsSignal().find((b) => b.id === blogId) ?? null;
+      this.themeCssUrl = this.service.getThemeCssUrl(this.blog?.theme);
+      this.pages = this.service.pagesSignal().filter((page) => page.blogId === blogId);
+      this.publishedPosts = this.service.postsSignal().filter((post) => post.blogId === blogId && post.status === 'published');
+
+      if (this.blog && this.post) {
+        this.loaded = true;
+      }
+    });
 
     this.service.loadPreviewPost(blogId, postId).then(async (loaded) => {
       if (!loaded) {
@@ -89,7 +97,7 @@ export class PreviewPageComponent implements OnInit {
 
       const hydrated = await this.service.loadPostById(blogId, loaded.id);
       this.post = hydrated ?? loaded;
-      this.loaded = true;
+      this.loaded = !!this.blog;
     });
   }
 

@@ -47,53 +47,55 @@ import { CmsService } from '../../services/cms.service';
 
       <!-- MAIN CONTENT -->
       <main class="site-main">
-        <!-- UPDATE BUTTON -->
-        <div class="update-banner">
-          <button class="update-btn">Update</button>
-        </div>
 
         <!-- CONTENT GRID -->
         <div class="content-grid" [class.sidebar-hidden]="pages.length === 0">
           <!-- POSTS SECTION -->
           <section class="posts-section">
             <div class="section-header">
-              <h2>{{ previewPost ? 'PREVIEW POST' : 'RECENT POSTS' }}</h2>
-              <a href="/site/{{ blog?.id }}" class="view-more">View More</a>
+              <h2 *ngIf="!previewPost">RECENT POSTS</h2>
+              <h2 *ngIf="previewPost">{{ previewPost.title }}</h2>
             </div>
 
             <div class="post-list">
-              <ng-container *ngIf="previewPost; else PublishedList">
-                <article class="post-item preview-post">
-                  <h3 class="post-title"><a [href]="previewPostLink()">{{ previewPost.title }}</a></h3>
-                  <p class="post-meta">{{ previewPost.category }} · {{ previewPost.publishedAt ? (previewPost.publishedAt | date:'mediumDate') : 'Draft preview' }}</p>
-                  <div class="post-excerpt" [innerHTML]="previewPost.content"></div>
-                </article>
-              </ng-container>
-
-              <ng-template #PublishedList>
+              <ng-container>
                 <article *ngFor="let post of publishedPosts" class="post-item">
                   <h3 class="post-title"><a href="/site/{{ blog?.id }}/{{ post.slug }}">{{ post.title }}</a></h3>
                   <div class="post-excerpt">{{ post.excerpt || (post.content | slice:0:250) }}</div>
                 </article>
-                <div *ngIf="publishedPosts.length === 0" class="empty">No posts yet.</div>
-              </ng-template>
+
+                <div *ngIf="publishedPosts.length === 0" class="empty">
+                  <ng-container *ngIf="previewPost; else noPosts">
+                    <div class="post-preview-content" [innerHTML]="previewPost.content"></div>
+                  </ng-container>
+                  <ng-template #noPosts>No posts yet.</ng-template>
+                </div>
+              </ng-container>
             </div>
           </section>
 
-          <!-- OTHER POSTS SIDEBAR -->
+          <!-- RECENT POSTS / SIDEBAR -->
           <aside class="sidebar-panel">
-            <ng-container *ngIf="otherPosts.length > 0; else noOtherPosts">
-              <div class="sidebar-widget" *ngFor="let post of otherPosts">
-                <h3 class="widget-title">{{ post.title }}</h3>
-                <div class="widget-content">{{ post.excerpt || post.content | slice: 0:150 }}...</div>
-              </div>
-            </ng-container>
-            <ng-template #noOtherPosts>
-              <div class="sidebar-widget">
-                <h3 class="widget-title">Other Posts</h3>
-                <div class="widget-content">No other posts yet.</div>
-              </div>
-            </ng-template>
+            <!-- If previewing a single post, show its title in the sidebar -->
+            <div class="sidebar-widget" *ngIf="previewPost">
+              <h3 class="widget-title">{{ previewPost.title }}</h3>
+            </div>
+
+            <!-- List recent published post titles as links -->
+            <div class="sidebar-widget" *ngIf="publishedPosts.length > 0">
+              <h3 class="widget-title">Recent Posts</h3>
+              <ul class="widget-list">
+                <li *ngFor="let p of publishedPosts">
+                  <a [href]="'/site/' + blog?.id + '/' + p.slug">{{ p.title }}</a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Fallback when there are no posts and not previewing -->
+            <div class="sidebar-widget" *ngIf="!previewPost && publishedPosts.length === 0">
+              <h3 class="widget-title">Other Posts</h3>
+              <div class="widget-content">No other posts yet.</div>
+            </div>
           </aside>
         </div>
       </main>
@@ -102,13 +104,7 @@ import { CmsService } from '../../services/cms.service';
       <footer class="site-footer">
         <p>© {{ blog?.name }} · Content and layout are styled by your chosen theme and template.</p>
       </footer>
-      <!-- DEBUG PANEL: remove in production -->
-      <div class="debug-overlay" *ngIf="true">
-        <details style="font-size:12px;color:#fff;background:rgba(0,0,0,0.6);padding:8px;border-radius:6px;position:fixed;bottom:12px;right:12px;z-index:9999;max-width:420px;">
-          <summary style="cursor:pointer;color:#fff;">Debug: templateConfig / pages / posts</summary>
-          <pre style="white-space:pre-wrap;word-break:break-word;color:#fff;margin-top:8px;max-height:320px;overflow:auto;">{{ debugJson() | json }}</pre>
-        </details>
-      </div>
+      <!-- DEBUG PANEL removed for preview/published site -->
     </section>
   `,
   styles: [
