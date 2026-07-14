@@ -57,17 +57,27 @@ import { CmsService } from '../../services/cms.service';
           <!-- POSTS SECTION -->
           <section class="posts-section">
             <div class="section-header">
-              <h2>RECENT POSTS</h2>
+              <h2>{{ previewPost ? 'PREVIEW POST' : 'RECENT POSTS' }}</h2>
               <a href="/site/{{ blog?.id }}" class="view-more">View More</a>
             </div>
-              <!-- ALL POSTS -->
-              <div class="post-list">
+
+            <div class="post-list">
+              <ng-container *ngIf="previewPost; else PublishedList">
+                <article class="post-item preview-post">
+                  <h3 class="post-title"><a [href]="previewPostLink()">{{ previewPost.title }}</a></h3>
+                  <p class="post-meta">{{ previewPost.category }} · {{ previewPost.publishedAt ? (previewPost.publishedAt | date:'mediumDate') : 'Draft preview' }}</p>
+                  <div class="post-excerpt" [innerHTML]="previewPost.content"></div>
+                </article>
+              </ng-container>
+
+              <ng-template #PublishedList>
                 <article *ngFor="let post of publishedPosts" class="post-item">
                   <h3 class="post-title"><a href="/site/{{ blog?.id }}/{{ post.slug }}">{{ post.title }}</a></h3>
                   <div class="post-excerpt">{{ post.excerpt || (post.content | slice:0:250) }}</div>
                 </article>
                 <div *ngIf="publishedPosts.length === 0" class="empty">No posts yet.</div>
-              </div>
+              </ng-template>
+            </div>
           </section>
 
           <!-- OTHER POSTS SIDEBAR -->
@@ -154,6 +164,7 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   @Input() blog: Blog | null = null;
   @Input() pages: Page[] = [];
   @Input() publishedPosts: Post[] = [];
+  @Input() previewPost: Post | null = null;
   @Input() themeCssUrl = '';
   
   globalThemeCss = '';
@@ -171,6 +182,11 @@ export class DefaultSiteTemplateComponent implements OnChanges {
 
   get otherPosts(): Post[] {
     return this.publishedPosts.length > 1 ? this.publishedPosts.slice(1) : [];
+  }
+
+  previewPostLink(): string {
+    if (!this.blog?.id || !this.previewPost?.slug) return '#';
+    return `/site/${this.blog.id}/${this.previewPost.slug}`;
   }
 
   constructor() {

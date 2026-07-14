@@ -2,63 +2,23 @@ import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CmsService } from '../../services/cms.service';
+import { DefaultSiteTemplateComponent } from '../default-site-template/default-site-template.component';
 import { Page, Post } from '../../models/cms.models';
 
 @Component({
   selector: 'app-preview-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, DefaultSiteTemplateComponent],
   template: `
-    <section class="site-page" *ngIf="loaded; else loading">
-      <link rel="stylesheet" [attr.href]="themeCssUrl">
-
-      <nav class="top-nav">
-        <a [href]="homeLink" class="nav-link">HOME</a>
-        <ng-container *ngIf="topNavPages.length">
-          <a *ngFor="let page of topNavPages" [href]="pageUrl(page.slug)" class="nav-link">{{ page.title }}</a>
-        </ng-container>
-        <a href="https://facebook.com" target="_blank" rel="noopener" class="social-link">f</a>
-      </nav>
-
-      <div class="logo-section">
-        <div class="logo-container">
-          <p class="logo-text" [style.color]="blog?.templateConfig?.logoColor || '#d32f2f'">
-            {{ blog?.templateConfig?.logoText || blog?.name || 'Blog' }}
-          </p>
-        </div>
-      </div>
-
-      <nav class="secondary-nav">
-        <a href="#" class="nav-icon">⌂</a>
-        <ng-container *ngFor="let item of secondaryNavItems">
-          <a [href]="item.url || '#'" class="nav-item">{{ item.label }}</a>
-        </ng-container>
-        <div class="search-container">
-          <input type="search" placeholder="Search" class="search-input" />
-          <span class="search-icon">🔍</span>
-        </div>
-      </nav>
-
-      <main class="site-main">
-        <div class="preview-banner">
-          <p class="preview-label">Private preview</p>
-          <div class="preview-actions">
-            <a [href]="editorLink" class="ghost-btn">Back to editor</a>
-            <a *ngIf="blog" [href]="service.getPublicSiteUrl(blog)" target="_blank" class="btn">Publish</a>
-          </div>
-        </div>
-
-        <article class="post-detail" *ngIf="post">
-          <h1>{{ post.title }}</h1>
-          <p class="meta">{{ post.category }} · {{ post.publishedAt ? (post.publishedAt | date:'mediumDate') : 'Draft preview' }}</p>
-          <div class="content" [innerHTML]="post.content"></div>
-        </article>
-      </main>
-
-      <footer class="site-footer">
-        <p>© {{ blog?.name }} · Content and layout are styled by your chosen theme and template.</p>
-      </footer>
-    </section>
+    <ng-container *ngIf="loaded && blog; else loading">
+      <app-default-site-template
+        [blog]="blog"
+        [pages]="pages"
+        [publishedPosts]="publishedPosts"
+        [previewPost]="post"
+        [themeCssUrl]="themeCssUrl">
+      </app-default-site-template>
+    </ng-container>
 
     <ng-template #loading>
       <p>Loading preview…</p>
@@ -103,8 +63,7 @@ export class PreviewPageComponent implements OnInit {
   blog: any = null;
   themeCssUrl = '';
   pages: Page[] = [];
-  homeLink = '#';
-  editorLink = '#';
+  publishedPosts: Post[] = [];
   loaded = false;
 
   ngOnInit(): void {
@@ -119,9 +78,8 @@ export class PreviewPageComponent implements OnInit {
 
     this.blog = this.service.blogsSignal().find((b) => b.id === blogId) ?? null;
     this.themeCssUrl = this.service.getThemeCssUrl(this.blog?.theme);
-    this.homeLink = this.blog ? `/site/${blogId}` : '/';
-    this.editorLink = `/posts/edit/${postId}`;
     this.pages = this.service.pagesSignal().filter((page) => page.blogId === blogId);
+    this.publishedPosts = this.service.postsSignal().filter((post) => post.blogId === blogId && post.status === 'published');
 
     this.service.loadPreviewPost(blogId, postId).then(async (loaded) => {
       if (!loaded) {
@@ -135,18 +93,4 @@ export class PreviewPageComponent implements OnInit {
     });
   }
 
-  get topNavPages(): Page[] {
-    if (!this.blog?.templateConfig?.topNavPageIds || !this.pages) return [];
-    return this.blog.templateConfig.topNavPageIds
-      .map((id: string) => this.pages.find((p: Page) => p.id === id))
-      .filter((p): p is Page => !!p);
-  }
-
-  get secondaryNavItems() {
-    return this.blog?.templateConfig?.secondaryNavItems || [];
-  }
-
-  pageUrl(slug: string): string {
-    return `/site/${this.blog?.id}/${slug}`;
-  }
 }
