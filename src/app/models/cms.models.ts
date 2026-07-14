@@ -10,8 +10,7 @@ export interface Post {
   blogId?: string;
   status: 'draft' | 'published';
   views: number;
-  createdAt?: string;
-  publishedAt?: string;
+  createdAt?: string;  updatedAt?: string;  publishedAt?: string;
   featuredImage?: string;
 }
 

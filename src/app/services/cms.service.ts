@@ -214,8 +214,9 @@ export class CmsService {
   async deleteBlogWithCascade(blogId: string): Promise<void> {
     try {
       // Delete all posts in the blog
-      const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
-      const postsSnapshot = await getDocs(postsCollection);
+      const postsCollection = collection(this.firestore, 'posts');
+      const postsQuery = query(postsCollection, where('blogId', '==', blogId));
+      const postsSnapshot = await getDocs(postsQuery);
       for (const postDoc of postsSnapshot.docs) {
         await deleteDoc(postDoc.ref);
       }
@@ -292,10 +293,15 @@ export class CmsService {
   }
 
   private async loadPostsForBlog(blogId: string): Promise<void> {
-    const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
-    collectionData(query(postsCollection, orderBy('updatedAt', 'desc')), { idField: 'id' })
+    const postsCollection = collection(this.firestore, 'posts');
+    const postsQuery = query(postsCollection, where('blogId', '==', blogId));
+    collectionData(postsQuery, { idField: 'id' })
       .pipe(
-        map((items: Array<Record<string, unknown>>) => items.map((item) => ({ ...this.normalizePost(item), blogId } as Post))),
+        map((items: Array<Record<string, unknown>>) =>
+          items
+            .map((item) => ({ ...this.normalizePost(item), blogId } as Post))
+            .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? '').getTime() - new Date(a.updatedAt ?? a.createdAt ?? '').getTime())
+        ),
         catchError(() => of([] as Post[]))
       )
       .subscribe((posts) => this.postsSignal.set(posts));
@@ -306,30 +312,32 @@ export class CmsService {
    * If `limitCount` is provided and > 0, the query will be limited.
    */
   async fetchPostsForBlog(blogId: string, limitCount?: number): Promise<Post[]> {
-    const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
-    const q = limitCount && limitCount > 0
-      ? query(postsCollection, orderBy('updatedAt', 'desc'), limit(limitCount))
-      : query(postsCollection, orderBy('updatedAt', 'desc'));
+    const postsCollection = collection(this.firestore, 'posts');
+    const q = query(postsCollection, where('blogId', '==', blogId));
 
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
 
-    const posts = snapshot.docs.map((docSnap) => ({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), blogId } as Post));
-    // replace in-memory list for this blog with freshly fetched items
+    const posts = snapshot.docs
+      .map((docSnap) => ({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), blogId } as Post))
+      .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? '').getTime() - new Date(a.updatedAt ?? a.createdAt ?? '').getTime());
+
+    const results = limitCount && limitCount > 0 ? posts.slice(0, limitCount) : posts;
     const others = this.postsSignal().filter((p) => p.blogId !== blogId);
-    this.postsSignal.set([...posts, ...others]);
-    return posts;
+    this.postsSignal.set([...results, ...others]);
+    return results;
   }
 
   /**
    * Fetch a post document by id from Firestore (no Storage hydration).
    */
   async fetchPostDocById(blogId: string, postId: string): Promise<Post | null> {
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    const postDoc = doc(this.firestore, `posts/${postId}`);
     const snapshot = await getDoc(postDoc);
     if (!snapshot.exists()) return null;
 
     const post = { ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), blogId } as Post;
+    if (post.blogId !== blogId) return null;
     // update in-memory signal but do not hydrate content from storage
     this.postsSignal.set([post, ...this.postsSignal().filter((p) => p.id !== post.id)]);
     return post;
@@ -357,15 +365,15 @@ export class CmsService {
       postMeta.publishedAt = now;
     }
 
-    const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
+    const postsCollection = collection(this.firestore, 'posts');
     const docRef = await addDoc(postsCollection, postMeta as any);
 
     const content = data.content ?? '';
     let contentUrl: string | undefined;
 
     if (content.trim().length) {
-      contentUrl = await this.uploadPostContent(blogId, docRef.id, content);
-      const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${docRef.id}`);
+      contentUrl = await this.uploadPostContent(docRef.id, content);
+      const postDoc = doc(this.firestore, `posts/${docRef.id}`);
       await updateDoc(postDoc, { contentUrl } as any);
     }
 
@@ -403,7 +411,7 @@ export class CmsService {
       updated.content = content;
 
       if (content.trim().length) {
-        updated.contentUrl = await this.uploadPostContent(blogId, postId, content);
+        updated.contentUrl = await this.uploadPostContent(postId, content);
         updateData.contentUrl = updated.contentUrl;
       } else {
         updated.contentUrl = undefined;
@@ -418,7 +426,7 @@ export class CmsService {
       if (updateData[k] === undefined) delete updateData[k];
     });
 
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    const postDoc = doc(this.firestore, `posts/${postId}`);
     if (Object.keys(updateData).length > 0) {
       await updateDoc(postDoc, updateData as any);
     }
@@ -428,7 +436,7 @@ export class CmsService {
   }
 
   async deletePost(blogId: string, postId: string): Promise<void> {
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    const postDoc = doc(this.firestore, `posts/${postId}`);
     await deleteDoc(postDoc);
     this.postsSignal.set(this.postsSignal().filter((item) => item.id !== postId));
   }
@@ -438,10 +446,10 @@ export class CmsService {
     if (!post) return null;
 
     const publishedAt = new Date().toISOString();
-    const updated: Post = { ...post, status: 'published', publishedAt };
+    const updated: Post = { ...post, status: 'published', publishedAt, updatedAt: publishedAt };
 
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
-    await updateDoc(postDoc, { status: updated.status, publishedAt: updated.publishedAt } as any);
+    const postDoc = doc(this.firestore, `posts/${postId}`);
+    await updateDoc(postDoc, { status: updated.status, publishedAt: updated.publishedAt, updatedAt: updated.updatedAt } as any);
 
     this.postsSignal.set(this.postsSignal().map((item) => (item.id === postId ? updated : item)));
     return updated;
@@ -455,12 +463,13 @@ export class CmsService {
       return hydrated;
     }
 
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    const postDoc = doc(this.firestore, `posts/${postId}`);
     const snapshot = await getDoc(postDoc);
     if (!snapshot.exists()) return null;
 
     const data = snapshot.data() as Record<string, unknown>;
     const post = await this.hydratePostContent({ ...this.normalizePost({ ...data, id: snapshot.id }), blogId });
+    if (post.blogId !== blogId) return null;
     this.previewSignal.set(post);
     return post;
   }
@@ -477,11 +486,12 @@ export class CmsService {
       return hydrated;
     }
 
-    const postDoc = doc(this.firestore, `blogs/${blogId}/posts/${postId}`);
+    const postDoc = doc(this.firestore, `posts/${postId}`);
     const snapshot = await getDoc(postDoc);
     if (!snapshot.exists()) return null;
 
     const post = await this.hydratePostContent({ ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), blogId });
+    if (post.blogId !== blogId) return null;
     this.postsSignal.set([post, ...this.postsSignal()]);
     return post;
   }
@@ -494,12 +504,14 @@ export class CmsService {
       return hydrated;
     }
 
-    const postsCollection = collection(this.firestore, `blogs/${blogId}/posts`);
+    const postsCollection = collection(this.firestore, 'posts');
     const slugQuery = query(postsCollection, where('slug', '==', slug));
     const snapshot = await getDocs(slugQuery);
     if (snapshot.empty) return null;
 
-    const docSnap = snapshot.docs[0];
+    const docSnap = snapshot.docs.find((s) => (s.data() as Record<string, unknown>)['blogId'] === blogId);
+    if (!docSnap) return null;
+
     const post = await this.hydratePostContent({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), blogId });
     this.postsSignal.set([post, ...this.postsSignal()]);
     return post;
@@ -567,16 +579,16 @@ export class CmsService {
     return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   }
 
-  private getPostContentPath(blogId: string, postId: string): string {
-    return `blogs/${blogId}/posts/${postId}.html`;
+  private getPostContentPath(postId: string): string {
+    return `posts/${postId}.html`;
   }
 
   private getPageContentPath(pageId: string): string {
     return `pages/${pageId}.html`;
   }
 
-  private async uploadPostContent(blogId: string, postId: string, content: string): Promise<string> {
-    const storageRef = ref(this.storage, this.getPostContentPath(blogId, postId));
+  private async uploadPostContent(postId: string, content: string): Promise<string> {
+    const storageRef = ref(this.storage, this.getPostContentPath(postId));
     await uploadString(storageRef, content, 'raw', { contentType: 'text/html' });
     return getDownloadURL(storageRef);
   }
@@ -1067,9 +1079,13 @@ export class CmsService {
 
   private loadPosts(): void {
     const postsCollection = collection(this.firestore, 'posts');
-    collectionData(query(postsCollection, orderBy('publishedAt', 'desc')), { idField: 'id' })
+    collectionData(query(postsCollection), { idField: 'id' })
       .pipe(
-        map((items: Array<Record<string, unknown>>) => items.map((item) => this.normalizePost(item))),
+        map((items: Array<Record<string, unknown>>) =>
+          items
+            .map((item) => this.normalizePost(item))
+            .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? '').getTime() - new Date(a.updatedAt ?? a.createdAt ?? '').getTime())
+        ),
         catchError(() => of([] as Post[]))
       )
       .subscribe((posts) => this.postsSignal.set(posts));
