@@ -21,17 +21,22 @@ import { CmsService } from '../../services/cms.service';
             </div>
           </li>
         </ul>
-        <a routerLink="/dashboard" class="btn ghost">+ New Store</a>
+        <a routerLink="/onboarding" class="btn ghost">+ New Store</a>
       </div>
 
-      <ul class="main-links">
-        <li><a routerLink="/pages">Pages</a></li>
-        <li><a routerLink="/posts">Posts</a></li>
-        <li><a routerLink="/dashboard">Dashboard</a></li>
-        <li><a (click)="openTheme()">Theme</a></li>
-        <li><a (click)="openTemplate()">Template</a></li>
-        <li><a routerLink="/dashboard">Settings</a></li>
-      </ul>
+      <ng-container *ngIf="cms.activeStoreSignal(); else noStoreLinks">
+        <ul class="main-links">
+          <li><a routerLink="/pages">Pages</a></li>
+          <li><a routerLink="/posts">Posts</a></li>
+          <li><a routerLink="/dashboard">Dashboard</a></li>
+          <li><a (click)="openTheme()">Theme</a></li>
+          <li><a (click)="openTemplate()">Template</a></li>
+          <li><a routerLink="/dashboard">Settings</a></li>
+        </ul>
+      </ng-container>
+      <ng-template #noStoreLinks>
+        <div class="hint">Select a store to access pages, posts, theme, and template links.</div>
+      </ng-template>
 
       <div class="new-post">
         <a (click)="newPost()" class="btn">+ New Post</a>

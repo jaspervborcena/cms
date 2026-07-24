@@ -24,7 +24,7 @@ import { AuthService } from '../../services/auth.service';
             <h2>No store selected</h2>
             <p>Create your first store to unlock the dashboard features.</p>
             <div class="actions">
-              <a routerLink="/dashboard" class="btn">Create a store</a>
+              <a routerLink="/onboarding" class="btn">Create a store</a>
             </div>
           </div>
 

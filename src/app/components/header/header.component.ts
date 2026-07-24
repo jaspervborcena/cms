@@ -13,7 +13,7 @@ import { AuthService } from '../../services/auth.service';
       <div class="brand">Tovrika CMS</div>
       <nav class="nav">
         <div class="spacer"></div>
-        <a routerLink="/products" class="nav-link">Products</a>
+        <a *ngIf="cms.activeStoreSignal()" routerLink="/products" class="nav-link">Products</a>
         <div class="account">
           <span class="avatar">{{ auth.authSignal()?.displayName?.charAt(0)?.toUpperCase() || 'U' }}</span>
           <span class="name">{{ auth.authSignal()?.displayName || auth.authSignal()?.email || 'Account' }}</span>

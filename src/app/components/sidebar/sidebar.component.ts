@@ -9,24 +9,27 @@ import { CmsService } from '../../services/cms.service';
   imports: [CommonModule, RouterLink],
   template: `
     <aside class="sidebar">
-      <section>
+      <section *ngIf="service.activeStoreSignal(); else noStoreSelected">
         <h3>Popular posts</h3>
         <ul>
           <li *ngFor="let post of service.popularPostsSignal()">
-            <a [routerLink]="['/posts', post.slug]">{{ post.title }}</a>
+            <a [routerLink]="['/site', service.activeStoreSignal()?.id, post.slug]">{{ post.title }}</a>
             <span>{{ post.views }} views</span>
           </li>
         </ul>
       </section>
-      <section>
+      <section *ngIf="service.activeStoreSignal()">
         <h3>Recent posts</h3>
         <ul>
           <li *ngFor="let post of service.recentPostsSignal()">
-            <a [routerLink]="['/posts', post.slug]">{{ post.title }}</a>
+            <a [routerLink]="['/site', service.activeStoreSignal()?.id, post.slug]">{{ post.title }}</a>
             <span>{{ post.category }}</span>
           </li>
         </ul>
       </section>
+      <ng-template #noStoreSelected>
+        <div class="hint">Select a store to see popular and recent posts.</div>
+      </ng-template>
     </aside>
   `,
   styles: [
