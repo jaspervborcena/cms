@@ -11,7 +11,7 @@ import { DefaultSiteTemplateComponent } from '../default-site-template/default-s
   standalone: true,
   imports: [CommonModule, RouterLink, DefaultSiteTemplateComponent],
   template: `
-    <ng-container *ngIf="!loadingBlogHost">
+    <ng-container *ngIf="!loadingStoreHost">
       <ng-container *ngIf="store; else genericLanding">
         <app-default-site-template
           [store]="store"
@@ -110,7 +110,7 @@ export class LandingComponent {
   pages: Page[] = [];
   publishedPosts: Post[] = [];
   themeCssUrl = '';
-  loadingBlogHost = true;
+  loadingStoreHost = true;
 
   constructor() {
     this.route.fragment.subscribe((f) => {
@@ -128,10 +128,10 @@ export class LandingComponent {
       const store = this.cms.hostStoreSignal();
       const pages = this.cms.pagesSignal();
       const posts = this.cms.postsSignal();
-      const blogsLoaded = this.cms.blogsLoadedSignal();
+      const storesLoaded = this.cms.storesLoadedSignal();
 
-      if (!blogsLoaded) {
-        this.loadingBlogHost = true;
+      if (!storesLoaded) {
+        this.loadingStoreHost = true;
         return;
       }
 
@@ -140,7 +140,7 @@ export class LandingComponent {
         this.pages = [];
         this.publishedPosts = [];
         this.themeCssUrl = '';
-        this.loadingBlogHost = false;
+        this.loadingStoreHost = false;
         return;
       }
 
@@ -148,7 +148,7 @@ export class LandingComponent {
       this.pages = pages.filter((page) => page.storeId === store.id);
       this.publishedPosts = posts.filter((post) => post.storeId === store.id && post.status === 'published');
       this.themeCssUrl = this.cms.getThemeCssUrl(store.theme);
-      this.loadingBlogHost = false;
+      this.loadingStoreHost = false;
     });
   }
 }

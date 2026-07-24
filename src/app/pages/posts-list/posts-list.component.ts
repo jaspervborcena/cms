@@ -50,7 +50,7 @@ export class PostsListComponent {
   async ngOnInit(): Promise<void> {
     const store = this.cms.activeStoreSignal();
     if (store) {
-      await this.cms.fetchPostsForBlog(store.id);
+      await this.cms.fetchPostsForStore(store.id);
     }
   }
 

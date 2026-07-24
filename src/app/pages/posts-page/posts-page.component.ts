@@ -29,7 +29,7 @@ export class PostsPageComponent {
   async ngOnInit(): Promise<void> {
     const store = this.service.activeStoreSignal();
     if (store) {
-      await this.service.fetchPostsForBlog(store.id);
+      await this.service.fetchPostsForStore(store.id);
     }
   }
 }

@@ -14,7 +14,7 @@ export class CmsService {
   readonly postsSignal = signal<Post[]>([]);
   readonly pagesSignal = signal<Page[]>([]);
   readonly storesSignal = signal<Store[]>([]);
-  readonly blogsLoadedSignal = signal(false);
+  readonly storesLoadedSignal = signal(false);
   readonly activeStoreSignal = signal<Store | null>(null);
   readonly draftSignal = signal<Post | null>(null);
   readonly previewSignal = signal<Post | null>(null);
@@ -69,14 +69,14 @@ export class CmsService {
     return this.pagesSignal().filter((page) => page.storeId === store.id);
   });
 
-  readonly hostBlogPagesSignal = computed(() => {
+  readonly hostStorePagesSignal = computed(() => {
     const store = this.hostStoreSignal();
     if (!store) return [] as Page[];
     return this.pagesSignal().filter((page) => page.storeId === store.id);
   });
 
   constructor() {
-    this.loadBlogs();
+    this.loadStores();
     this.loadPosts();
     this.loadPages();
   }
@@ -87,9 +87,9 @@ export class CmsService {
   // Root public domain used for generated store subdomains
   private readonly rootPublicDomain = 'gameoffortunes.com';
 
-  private loadBlogs(): void {
-    const blogsCollection = collection(this.firestore, 'stores');
-    collectionData(query(blogsCollection, orderBy('createdAt', 'desc')), { idField: 'id' })
+  private loadStores(): void {
+    const storesCollection = collection(this.firestore, 'stores');
+    collectionData(query(storesCollection, orderBy('createdAt', 'desc')), { idField: 'id' })
       .pipe(
         map((items: Array<Record<string, unknown>>) =>
           items.map((item) => ({
@@ -112,7 +112,7 @@ export class CmsService {
       )
       .subscribe((stores) => {
         this.storesSignal.set(stores);
-        this.blogsLoadedSignal.set(true);
+        this.storesLoadedSignal.set(true);
       });
   }
 
@@ -136,50 +136,26 @@ export class CmsService {
       store.slug = this.slugify(requestedSlug);
     }
 
-    const blogsCollection = collection(this.firestore, 'stores');
-    const docRef = await addDoc(blogsCollection, store as any);
-    const newBlog: Store = { ...(store as Store), id: docRef.id, slug: store.slug ?? docRef.id };
+    const storesCollection = collection(this.firestore, 'stores');
+    const docRef = await addDoc(storesCollection, store as any);
+    const newStore: Store = { ...(store as Store), id: docRef.id, slug: store.slug ?? docRef.id };
 
     // set slug and default domain to a subdomain of the public root domain
-    const defaultDomain = `${newBlog.slug}.${this.rootPublicDomain}`;
-    await setDoc(docRef, { slug: newBlog.slug, domain: defaultDomain, template: this.defaultTemplate }, { merge: true });
-    newBlog.domain = defaultDomain;
-    newBlog.template = this.defaultTemplate;
-    this.activeStoreSignal.set(newBlog);
-    this.storesSignal.set([...this.storesSignal(), newBlog]);
+    const defaultDomain = `${newStore.slug}.${this.rootPublicDomain}`;
+    await setDoc(docRef, { slug: newStore.slug, domain: defaultDomain, template: this.defaultTemplate }, { merge: true });
+    newStore.domain = defaultDomain;
+    newStore.template = this.defaultTemplate;
+    this.activeStoreSignal.set(newStore);
+    this.storesSignal.set([...this.storesSignal(), newStore]);
 
-    await this.createPage({
-      title: 'About',
-      slug: 'about',
-      excerpt: 'Learn more about this store and the story behind the brand.',
-      content: `
-<h2>About</h2>
-<p>Welcome to ${newBlog.name}! This is your custom store site powered by our CMS. Use this page to tell visitors who you are, what you do, and why your content matters.</p>
-<p>Update the title and content as needed to match your brand and personality.</p>
-`,
-      storeId: newBlog.id
-    });
-
-    await this.createPage({
-      title: 'Data Privacy',
-      slug: 'data-privacy',
-      excerpt: 'Understand how this site uses data and protects your privacy.',
-      content: `
-<h2>Data Privacy</h2>
-<p>We respect your privacy. This site collects only the information needed to deliver content and improve your experience.</p>
-<p>We do not sell your data, and we handle visitor information responsibly according to applicable privacy rules.</p>
-`,
-      storeId: newBlog.id
-    });
-
-    return newBlog;
+    return newStore;
   }
 
   async updateStore(storeId: string, data: Partial<Pick<Store, 'name' | 'slug' | 'description' | 'category' | 'domain' | 'ownerUid'>>): Promise<Store | null> {
     const store = this.storesSignal().find((item) => item.id === storeId);
     if (!store) return null;
 
-    const updatedBlog: Store = {
+    const updatedStore: Store = {
       ...store,
       ...data,
       slug: data.slug ? this.slugify(data.slug) : store.slug,
@@ -188,21 +164,21 @@ export class CmsService {
       updatedAt: new Date().toISOString()
     };
 
-    const blogDoc = doc(this.firestore, `stores/${storeId}`);
-    await updateDoc(blogDoc, updatedBlog as any);
+    const storeDoc = doc(this.firestore, `stores/${storeId}`);
+    await updateDoc(storeDoc, updatedStore as any);
 
-    const updatedBlogs = this.storesSignal().map((item) => (item.id === storeId ? updatedBlog : item));
-    this.storesSignal.set(updatedBlogs);
+    const updatedStores = this.storesSignal().map((item) => (item.id === storeId ? updatedStore : item));
+    this.storesSignal.set(updatedStores);
     if (this.activeStoreSignal()?.id === storeId) {
-      this.activeStoreSignal.set(updatedBlog);
+      this.activeStoreSignal.set(updatedStore);
     }
 
-    return updatedBlog;
+    return updatedStore;
   }
 
   async deleteStore(storeId: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `stores/${storeId}`);
-    await deleteDoc(blogDoc);
+    const storeDoc = doc(this.firestore, `stores/${storeId}`);
+    await deleteDoc(storeDoc);
 
     const remaining = this.storesSignal().filter((item) => item.id !== storeId);
     this.storesSignal.set(remaining);
@@ -223,8 +199,8 @@ export class CmsService {
 
       // Delete all pages related to this store
       const allPages = this.pagesSignal();
-      const blogPages = allPages.filter((p) => p.storeId === storeId);
-      for (const page of blogPages) {
+      const storePages = allPages.filter((p) => p.storeId === storeId);
+      for (const page of storePages) {
         if (page.id) {
           const pageDocRef = doc(this.firestore, `pages/${page.id}`);
           await deleteDoc(pageDocRef);
@@ -232,8 +208,8 @@ export class CmsService {
       }
 
       // Delete the store itself
-      const blogDoc = doc(this.firestore, `stores/${storeId}`);
-      await deleteDoc(blogDoc);
+      const storeDoc = doc(this.firestore, `stores/${storeId}`);
+      await deleteDoc(storeDoc);
 
       // Update signals
       const remaining = this.storesSignal().filter((item) => item.id !== storeId);
@@ -254,17 +230,17 @@ export class CmsService {
     }
   }
 
-  setActiveBlogById(storeId: string): void {
+  setActiveStoreById(storeId: string): void {
     const found = this.storesSignal().find((b) => b.id === storeId);
     if (found) {
       this.activeStoreSignal.set(found);
-      this.loadPostsForBlog(found.id);
+      this.loadPostsForStore(found.id);
       this.ensureStoreHasTheme(found.id).catch(() => {});
       return;
     }
 
-    const blogDocRef = doc(this.firestore, `stores/${storeId}`);
-    getDoc(blogDocRef)
+    const storeDocRef = doc(this.firestore, `stores/${storeId}`);
+    getDoc(storeDocRef)
       .then((snapshot) => {
         if (!snapshot.exists()) return;
         const data = snapshot.data() as Record<string, unknown>;
@@ -286,13 +262,13 @@ export class CmsService {
 
         this.activeStoreSignal.set(store);
         this.storesSignal.set([...this.storesSignal(), store]);
-        this.loadPostsForBlog(store.id);
+        this.loadPostsForStore(store.id);
         this.ensureStoreHasTheme(store.id).catch(() => {});
       })
       .catch(() => {});
   }
 
-  private async loadPostsForBlog(storeId: string): Promise<void> {
+  private async loadPostsForStore(storeId: string): Promise<void> {
     const postsCollection = collection(this.firestore, 'posts');
     const postsQuery = query(postsCollection, where('storeId', '==', storeId));
     collectionData(postsQuery, { idField: 'id' })
@@ -311,7 +287,7 @@ export class CmsService {
    * Fetch posts for a store directly from Firestore (no Storage hydration).
    * If `limitCount` is provided and > 0, the query will be limited.
    */
-  async fetchPostsForBlog(storeId: string, limitCount?: number): Promise<Post[]> {
+  async fetchPostsForStore(storeId: string, limitCount?: number): Promise<Post[]> {
     const postsCollection = collection(this.firestore, 'posts');
     const q = query(postsCollection, where('storeId', '==', storeId));
 
@@ -797,8 +773,8 @@ export class CmsService {
   }
 
   async setStoreTheme(storeId: string, theme: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `stores/${storeId}`);
-    await setDoc(blogDoc, { theme }, { merge: true });
+    const storeDoc = doc(this.firestore, `stores/${storeId}`);
+    await setDoc(storeDoc, { theme }, { merge: true });
 
     const current = this.activeStoreSignal();
     if (current && current.id === storeId) {
@@ -807,8 +783,8 @@ export class CmsService {
   }
 
   async setStoreTemplate(storeId: string, template: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `stores/${storeId}`);
-    await setDoc(blogDoc, { template }, { merge: true });
+    const storeDoc = doc(this.firestore, `stores/${storeId}`);
+    await setDoc(storeDoc, { template }, { merge: true });
 
     const current = this.activeStoreSignal();
     if (current && current.id === storeId) {
@@ -834,8 +810,8 @@ export class CmsService {
   }
 
   async setStoreDomain(storeId: string, domain: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `stores/${storeId}`);
-    await setDoc(blogDoc, { domain }, { merge: true });
+    const storeDoc = doc(this.firestore, `stores/${storeId}`);
+    await setDoc(storeDoc, { domain }, { merge: true });
 
     const current = this.activeStoreSignal();
     if (current && current.id === storeId) {
@@ -864,8 +840,8 @@ export class CmsService {
       logoColor: config?.logoColor ?? null
     } as TemplateConfig;
 
-    const blogDoc = doc(this.firestore, `stores/${storeId}`);
-    await setDoc(blogDoc, { templateConfig: normalized }, { merge: true });
+    const storeDoc = doc(this.firestore, `stores/${storeId}`);
+    await setDoc(storeDoc, { templateConfig: normalized }, { merge: true });
 
     const current = this.activeStoreSignal();
     if (current?.id === storeId) {
@@ -1135,20 +1111,20 @@ export class CmsService {
     };
   }
 
-  async saveBlogThemeSettings(storeId: string, themeVars: any): Promise<void> {
+  async saveStoreThemeSettings(storeId: string, themeVars: any): Promise<void> {
     try {
-      const blogDoc = doc(this.firestore, `stores/${storeId}`);
-      await setDoc(blogDoc, { themeSettings: themeVars }, { merge: true });
+      const storeDoc = doc(this.firestore, `stores/${storeId}`);
+      await setDoc(storeDoc, { themeSettings: themeVars }, { merge: true });
     } catch (error) {
       console.error('Error saving store theme settings:', error);
       throw error;
     }
   }
 
-  async loadBlogThemeSettings(storeId: string): Promise<Record<string, unknown>> {
+  async loadStoreThemeSettings(storeId: string): Promise<Record<string, unknown>> {
     try {
-      const blogDoc = doc(this.firestore, `stores/${storeId}`);
-      const snapshot = await getDoc(blogDoc);
+      const storeDoc = doc(this.firestore, `stores/${storeId}`);
+      const snapshot = await getDoc(storeDoc);
       if (snapshot.exists()) {
         const data = snapshot.data();
         return data['themeSettings'] || {};

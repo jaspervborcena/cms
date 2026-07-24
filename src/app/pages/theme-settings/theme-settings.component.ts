@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CmsService } from '../../services/cms.service';
 import { Router } from '@angular/router';
 
-interface BlogTheme {
+interface StoreTheme {
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
@@ -24,7 +24,7 @@ interface BlogTheme {
       <h2>Theme CSS Editor</h2>
       <p>Modify the theme CSS for <strong>{{ cms.activeStoreSignal()?.name }}</strong>.</p>
       
-      <div *ngIf="cms.activeStoreSignal() as store; else noBlog" class="editor-container">
+      <div *ngIf="cms.activeStoreSignal() as store; else noStore" class="editor-container">
         <div class="editor-section">
           <h3>CSS Variables</h3>
           <div class="css-variables">
@@ -104,7 +104,7 @@ interface BlogTheme {
         </div>
       </div>
 
-      <ng-template #noBlog>
+      <ng-template #noStore>
         <p>No active store selected.</p>
       </ng-template>
     </section>
@@ -143,7 +143,7 @@ export class ThemeSettingsComponent implements OnInit {
   readonly cms = inject(CmsService);
   private router = inject(Router);
 
-  themeVars: BlogTheme = {
+  themeVars: StoreTheme = {
     primaryColor: '#d32f2f',
     secondaryColor: '#2b2b2b',
     accentColor: '#d32f2f',
@@ -188,7 +188,7 @@ export class ThemeSettingsComponent implements OnInit {
     
     // Optionally save to Firestore for persistence
     try {
-      await this.cms.saveBlogThemeSettings(storeId, this.themeVars);
+      await this.cms.saveStoreThemeSettings(storeId, this.themeVars);
     } catch (error) {
       console.warn('Could not save theme to Firestore:', error);
     }

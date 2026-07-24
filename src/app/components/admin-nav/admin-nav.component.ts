@@ -41,7 +41,7 @@ import { CmsService } from '../../services/cms.service';
       <div class="modal" *ngIf="showDeleteConfirm">
         <div class="modal-content">
           <h3>Delete Store?</h3>
-          <p>Are you sure you want to delete <strong>{{ deleteBlogName }}</strong>?</p>
+          <p>Are you sure you want to delete <strong>{{ deleteStoreName }}</strong>?</p>
           <p class="warning">This will permanently delete the store and all its posts and pages.</p>
           <div class="modal-actions">
             <button class="btn btn-danger" (click)="confirmDeleteAction()">Delete</button>
@@ -86,30 +86,30 @@ export class AdminNavComponent {
   private router = inject(Router);
 
   select(id: string) {
-    this.cms.setActiveBlogById(id);
+    this.cms.setActiveStoreById(id);
     this.router.navigate(['/dashboard', id]);
   }
 
-  confirmDelete(storeId: string, blogName: string, event: Event) {
+  confirmDelete(storeId: string, storeName: string, event: Event) {
     event.stopPropagation();
-    this.deleteBlogId = storeId;
-    this.deleteBlogName = blogName;
+    this.deleteStoreId = storeId;
+    this.deleteStoreName = storeName;
     this.showDeleteConfirm = true;
   }
 
   cancelDelete() {
     this.showDeleteConfirm = false;
-    this.deleteBlogId = '';
-    this.deleteBlogName = '';
+    this.deleteStoreId = '';
+    this.deleteStoreName = '';
   }
 
   async confirmDeleteAction() {
-    await this.cms.deleteStoreWithCascade(this.deleteBlogId);
+    await this.cms.deleteStoreWithCascade(this.deleteStoreId);
     this.showDeleteConfirm = false;
-    this.deleteBlogId = '';
-    this.deleteBlogName = '';
+    this.deleteStoreId = '';
+    this.deleteStoreName = '';
     
-    if (this.cms.activeStoreSignal()?.id === this.deleteBlogId) {
+    if (this.cms.activeStoreSignal()?.id === this.deleteStoreId) {
       this.router.navigate(['/dashboard']);
     }
   }
@@ -136,6 +136,6 @@ export class AdminNavComponent {
   }
 
   showDeleteConfirm = false;
-  deleteBlogId = '';
-  deleteBlogName = '';
+  deleteStoreId = '';
+  deleteStoreName = '';
 }

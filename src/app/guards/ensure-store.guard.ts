@@ -13,7 +13,7 @@ export const ensureStoreGuard: CanActivateFn = async (route: ActivatedRouteSnaps
   const storeId = route.paramMap.get('storeId');
   if (storeId) {
     // attempt to set active store from route
-    cms.setActiveBlogById(storeId);
+    cms.setActiveStoreById(storeId);
     return true;
   }
 

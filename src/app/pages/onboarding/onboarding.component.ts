@@ -21,6 +21,7 @@ import { AuthService } from '../../services/auth.service';
             <label>Category<select formControlName="category"><option value="personal">Personal</option><option value="business">Business</option><option value="ecommerce">E‑commerce</option></select></label>
             <div class="actions"><button type="submit" [disabled]="form1.invalid">Create store</button></div>
           </form>
+          <p *ngIf="errorMessage" class="error">{{ errorMessage }}</p>
         </div>
 
         <div *ngIf="step === 2">
@@ -81,6 +82,7 @@ export class OnboardingComponent {
   templates = this.cms.getAvailableTemplates().map(t => t.label);
   selectedTheme: string | null = null;
   selectedTemplate: string | null = null;
+  errorMessage: string | null = null;
 
   form1 = this.fb.nonNullable.group({
     name: ['', [Validators.required]],
@@ -92,13 +94,20 @@ export class OnboardingComponent {
 
   async createStore(): Promise<void> {
     if (this.form1.invalid) return;
+    this.errorMessage = null;
+
     const { name, description, category } = this.form1.getRawValue();
     const ownerUid = this.auth.authSignal() ? this.auth.authSignal()!.uid : null;
-    const store = await this.cms.createStore({ name, description, category, ownerUid });
-    this.step = 2;
-    // store store id locally already handled by CmsService
-    this.selectedTheme = store.theme ?? 'Default';
-    this.selectedTemplate = store.template ?? 'Default';
+
+    try {
+      const store = await this.cms.createStore({ name, description, category, ownerUid });
+      this.step = 2;
+      // store store id locally already handled by CmsService
+      this.selectedTheme = store.theme ?? 'Default';
+      this.selectedTemplate = store.template ?? 'Default';
+    } catch (error: unknown) {
+      this.errorMessage = error instanceof Error ? error.message : 'Unable to create store.';
+    }
   }
 
   back() { this.step = Math.max(1, this.step - 1); }

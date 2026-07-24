@@ -10,7 +10,7 @@ import { NavigationItem, TemplateConfig } from '../../models/cms.models';
   imports: [CommonModule, FormsModule],
   template: `
     <section class="template-config-container">
-      <div *ngIf="cms.activeStoreSignal() as store; else noBlog">
+      <div *ngIf="cms.activeStoreSignal() as store; else noStore">
         <!-- LIVE PREVIEW -->
         <div class="preview-section">
           <h3>Live Preview</h3>
@@ -146,7 +146,7 @@ import { NavigationItem, TemplateConfig } from '../../models/cms.models';
         </div>
       </div>
 
-      <ng-template #noBlog>
+      <ng-template #noStore>
         <p class="error-message">No active store selected.</p>
       </ng-template>
     </section>

@@ -11,7 +11,7 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="template-designer">
-      <div *ngIf="cms.activeStoreSignal() as store; else noBlog" class="designer-container">
+      <div *ngIf="cms.activeStoreSignal() as store; else noStore" class="designer-container">
         <h2>Template Designer</h2>
         <p>Customize your store template. Add, edit, or remove sections.</p>
 
@@ -248,7 +248,7 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
         </div>
       </div>
 
-      <ng-template #noBlog>
+      <ng-template #noStore>
         <p>No active store selected.</p>
       </ng-template>
     </section>

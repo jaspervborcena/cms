@@ -54,15 +54,15 @@ export class PublicHostComponent implements OnInit {
     const params = this.route.snapshot.paramMap;
     const routeHostSlug = params.get('hostSlug');
     const slug = params.get('slug');
-    const hostnameBlog = this.cms.hostStoreSignal() ?? this.cms.findStoreByHostName(window.location.hostname);
-    const hostSlug = routeHostSlug || hostnameBlog?.id;
+    const hostnameStore = this.cms.hostStoreSignal() ?? this.cms.findStoreByHostName(window.location.hostname);
+    const hostSlug = routeHostSlug || hostnameStore?.id;
 
     if (!hostSlug || !slug) {
       this.loaded = true;
       return;
     }
 
-    const store = routeHostSlug ? this.cms.findStoreByHostSlug(hostSlug) : hostnameBlog;
+    const store = routeHostSlug ? this.cms.findStoreByHostSlug(hostSlug) : hostnameStore;
     if (!store) {
       this.loaded = true;
       return;
@@ -70,7 +70,7 @@ export class PublicHostComponent implements OnInit {
 
     this.store = store;
     this.themeCssUrl = this.cms.getThemeCssUrl(store.theme);
-    this.homeLink = this.blogHostHomeLink(store);
+    this.homeLink = this.storeHostHomeLink(store);
 
     // find published post by slug
     let post = this.cms.findPostBySlug(store.id, slug) ?? null;
@@ -89,7 +89,7 @@ export class PublicHostComponent implements OnInit {
     this.loaded = true;
   }
 
-  private blogHostHomeLink(store: any): string {
+  private storeHostHomeLink(store: any): string {
     const host = this.cms.getPublicHostForStore(store);
     if (!host) {
       return `/site/${store.id}`;

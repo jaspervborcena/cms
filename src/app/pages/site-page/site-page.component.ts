@@ -73,7 +73,7 @@ export class SitePageComponent implements AfterViewInit, OnInit, OnDestroy {
   ngOnInit(): void {
     const storeId = this.storeId();
     if (storeId) {
-      this.service.setActiveBlogById(storeId);
+      this.service.setActiveStoreById(storeId);
     }
   }
 

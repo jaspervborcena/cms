@@ -19,7 +19,7 @@ export class AppComponent {
   readonly auth = inject(AuthService);
   readonly router = inject(Router);
   readonly cms = inject(CmsService);
-  readonly hostBlog = this.cms.hostStoreSignal;
+  readonly hostStore = this.cms.hostStoreSignal;
 
   private get currentUrl(): string {
     // ignore fragment and query params when computing layout decisions
@@ -36,8 +36,8 @@ export class AppComponent {
     return this.currentUrl.startsWith('/site');
   }
 
-  get isBlogHostRoute(): boolean {
-    return !!this.hostBlog();
+  get isStoreHostRoute(): boolean {
+    return !!this.hostStore();
   }
 
   get isPublicRoute(): boolean {

@@ -11,7 +11,7 @@ describe('ensureStoreGuard', () => {
   beforeEach(() => {
     cmsService = {
       activeStoreSignal: signal(null),
-      setActiveBlogById: jasmine.createSpy('setActiveBlogById')
+      setActiveStoreById: jasmine.createSpy('setActiveStoreById')
     };
 
     router = jasmine.createSpyObj('Router', ['navigate']);

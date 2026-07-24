@@ -76,7 +76,7 @@ export class PreviewPageComponent implements OnInit {
       return;
     }
 
-    this.service.setActiveBlogById(storeId);
+    this.service.setActiveStoreById(storeId);
 
     effect(() => {
       this.store = this.service.storesSignal().find((b) => b.id === storeId) ?? null;

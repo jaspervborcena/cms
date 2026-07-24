@@ -37,9 +37,9 @@ export class HeaderComponent {
   readonly auth = inject(AuthService);
   private router = inject(Router);
 
-  switchBlog(id: string) {
+  switchStore(id: string) {
     if (!id) return;
-    this.cms.setActiveBlogById(id);
+    this.cms.setActiveStoreById(id);
     this.router.navigate(['/dashboard', id]);
   }
 }
