@@ -11,6 +11,7 @@ import { authGuard } from './guards/auth.guard';
 import { ensureStoreGuard } from './guards/ensure-store.guard';
 import { NewPostComponent } from './pages/new-post/new-post.component';
 import { PostsListComponent } from './pages/posts-list/posts-list.component';
+import { ProductsPageComponent } from './pages/products-page/products-page.component';
 
 export const routes: Routes = [
   { path: '', component: LandingComponent },
@@ -26,6 +27,7 @@ export const routes: Routes = [
   { path: 'site/:storeId/:slug', component: PostDetailComponent },
   { path: 'preview/:storeId/:postId', component: PreviewPageComponent, canActivate: [authGuard, ensureStoreGuard] },
   { path: 'posts', component: PostsListComponent, canActivate: [authGuard, ensureStoreGuard] },
+  { path: 'products', component: ProductsPageComponent, canActivate: [authGuard, ensureStoreGuard] },
   { path: 'posts/edit/:postId', component: NewPostComponent, canActivate: [authGuard, ensureStoreGuard] },
   { path: 'posts/new', component: NewPostComponent, canActivate: [authGuard, ensureStoreGuard] },
   { path: ':hostSlug/:slug', component: PublicHostComponent },

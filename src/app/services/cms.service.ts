@@ -2,7 +2,7 @@
 import { collection, collectionData, Firestore, orderBy, query, where, getDocs, addDoc, setDoc, doc, getDoc, updateDoc, deleteDoc, limit } from '@angular/fire/firestore';
 import { Storage, getDownloadURL, ref, uploadString } from '@angular/fire/storage';
 import { catchError, map, of } from 'rxjs';
-import { Page, Post, Store, TemplateConfig, NavigationItem, GlobalThemeSettings } from '../models/cms.models';
+import { Page, Post, Product, Store, TemplateConfig, NavigationItem, GlobalThemeSettings } from '../models/cms.models';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -13,6 +13,7 @@ export class CmsService {
 
   readonly postsSignal = signal<Post[]>([]);
   readonly pagesSignal = signal<Page[]>([]);
+  readonly productsSignal = signal<Product[]>([]);
   readonly storesSignal = signal<Store[]>([]);
   readonly storesLoadedSignal = signal(false);
   readonly activeStoreSignal = signal<Store | null>(null);
@@ -69,6 +70,12 @@ export class CmsService {
     return this.pagesSignal().filter((page) => page.storeId === store.id);
   });
 
+  readonly storeProductsSignal = computed(() => {
+    const store = this.activeStoreSignal();
+    if (!store) return [] as Product[];
+    return this.productsSignal().filter((product) => product.storeId === store.id);
+  });
+
   readonly hostStorePagesSignal = computed(() => {
     const store = this.hostStoreSignal();
     if (!store) return [] as Page[];
@@ -79,6 +86,7 @@ export class CmsService {
     this.loadStores();
     this.loadPosts();
     this.loadPages();
+    this.loadProducts();
   }
 
   readonly defaultTheme = 'modern';
@@ -302,6 +310,22 @@ export class CmsService {
     const others = this.postsSignal().filter((p) => p.storeId !== storeId);
     this.postsSignal.set([...results, ...others]);
     return results;
+  }
+
+  async fetchProductsForStore(storeId: string): Promise<Product[]> {
+    const productsCollection = collection(this.firestore, 'products');
+    const q = query(productsCollection, where('storeId', '==', storeId));
+
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return [];
+
+    const products = snapshot.docs
+      .map((docSnap) => ({ ...this.normalizeProduct({ ...docSnap.data(), id: docSnap.id }), storeId } as Product))
+      .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    const others = this.productsSignal().filter((p) => p.storeId !== storeId);
+    this.productsSignal.set([...products, ...others]);
+    return products;
   }
 
   /**
@@ -1075,6 +1099,31 @@ export class CmsService {
         catchError(() => of([] as Page[]))
       )
       .subscribe((pages) => this.pagesSignal.set(pages));
+  }
+
+  private loadProducts(): void {
+    const productsCollection = collection(this.firestore, 'products');
+    collectionData(query(productsCollection, orderBy('name', 'asc')), { idField: 'id' })
+      .pipe(
+        map((items: Array<Record<string, unknown>>) => items.map((item) => this.normalizeProduct(item))),
+        catchError(() => of([] as Product[]))
+      )
+      .subscribe((products) => this.productsSignal.set(products));
+  }
+
+  private normalizeProduct(item: Record<string, unknown>): Product {
+    return {
+      id: String(item['id'] ?? ''),
+      uid: item['uid'] ? String(item['uid']) : undefined,
+      name: String(item['name'] ?? 'Untitled product'),
+      slug: String(item['slug'] ?? 'untitled-product'),
+      description: item['description'] ? String(item['description']) : undefined,
+      price: item['price'] ? Number(item['price']) : undefined,
+      imageUrl: item['imageUrl'] ? String(item['imageUrl']) : undefined,
+      storeId: item['storeId'] ? String(item['storeId']) : undefined,
+      createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
+      updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined
+    };
   }
 
   private normalizePost(item: Record<string, unknown>): Post {

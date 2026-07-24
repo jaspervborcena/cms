@@ -27,6 +27,19 @@ export interface Page {
   updatedAt?: string;
 }
 
+export interface Product {
+  id: string;
+  uid?: string;
+  name: string;
+  slug: string;
+  description?: string;
+  price?: number;
+  imageUrl?: string;
+  storeId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface NavigationItem {
   id: string;
   label: string;

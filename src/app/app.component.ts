@@ -37,7 +37,7 @@ export class AppComponent {
   }
 
   get isStoreHostRoute(): boolean {
-    return !!this.hostStore();
+    return !!this.hostStore() && this.currentUrl === '/';
   }
 
   get isPublicRoute(): boolean {
