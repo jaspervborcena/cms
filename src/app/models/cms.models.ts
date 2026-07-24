@@ -7,7 +7,7 @@ export interface Post {
   content: string;
   contentUrl?: string;
   category: string;
-  blogId?: string;
+  storeId?: string;
   status: 'draft' | 'published';
   views: number;
   createdAt?: string;  updatedAt?: string;  publishedAt?: string;
@@ -22,7 +22,7 @@ export interface Page {
   excerpt?: string;
   content: string;
   contentUrl?: string;
-  blogId?: string;
+  storeId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -42,7 +42,7 @@ export interface TemplateConfig {
   sidebarPageIds?: string[];
 }
 
-export interface Blog {
+export interface Store {
   id: string;
   uid?: string;
   name: string;
@@ -92,11 +92,11 @@ export interface User {
   emailVerified?: boolean;
   roles?: string[];
   roleId?: number;
-  blogsOwned?: string[];
-  blogsMember?: string[];
+  storesOwned?: string[];
+  storesMember?: string[];
   status?: string;
   createdAt?: string;
   lastLogin?: string;
   updatedAt?: string;
-  lastActiveBlogId?: string | null;
+  lastActiveStoreId?: string | null;
 }

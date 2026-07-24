@@ -102,11 +102,11 @@ export class NewPostComponent implements OnInit {
 
   ngOnInit(): void {
     const postId = this.route.snapshot.paramMap.get('postId');
-    const blog = this.cms.activeBlogSignal();
+    const store = this.cms.activeStoreSignal();
 
-    if (!blog || !postId) return;
+    if (!store || !postId) return;
 
-    this.cms.loadPostById(blog.id, postId).then((post) => {
+    this.cms.loadPostById(store.id, postId).then((post) => {
       if (!post) return;
       this.currentPost = post;
       this.form.setValue({
@@ -121,8 +121,8 @@ export class NewPostComponent implements OnInit {
   }
 
   async saveDraft(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) {
+    const store = this.cms.activeStoreSignal();
+    if (!store) {
       this.router.navigate(['/dashboard']);
       return;
     }
@@ -132,7 +132,7 @@ export class NewPostComponent implements OnInit {
 
     try {
       if (this.currentPost) {
-        const updated = await this.cms.updatePost(blog.id, this.currentPost.id, {
+        const updated = await this.cms.updatePost(store.id, this.currentPost.id, {
           title,
           excerpt,
           content,
@@ -144,7 +144,7 @@ export class NewPostComponent implements OnInit {
         return;
       }
 
-      const created = await this.cms.createPost(blog.id, { title, excerpt, content, status: 'draft' });
+      const created = await this.cms.createPost(store.id, { title, excerpt, content, status: 'draft' });
       this.currentPost = created;
     } catch (error: any) {
       this.saveError.set(error?.message ?? 'Unable to save draft. Make sure you are online and connected to Firestore.');
@@ -152,14 +152,14 @@ export class NewPostComponent implements OnInit {
   }
 
   async preview(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) {
+    const store = this.cms.activeStoreSignal();
+    if (!store) {
       this.router.navigate(['/dashboard']);
       return;
     }
 
     const navigatePreview = (postId: string) => {
-      window.open(`${window.location.origin}/preview/${blog.id}/${postId}`, '_blank');
+      window.open(`${window.location.origin}/preview/${store.id}/${postId}`, '_blank');
     };
 
     const { title, excerpt, content } = this.form.getRawValue();
@@ -167,7 +167,7 @@ export class NewPostComponent implements OnInit {
 
     try {
       if (this.currentPost) {
-        const updated = await this.cms.updatePost(blog.id, this.currentPost.id, {
+        const updated = await this.cms.updatePost(store.id, this.currentPost.id, {
           title,
           excerpt,
           content,
@@ -180,7 +180,7 @@ export class NewPostComponent implements OnInit {
         return;
       }
 
-      const created = await this.cms.createPost(blog.id, { title, excerpt, content, status: 'draft' });
+      const created = await this.cms.createPost(store.id, { title, excerpt, content, status: 'draft' });
       this.currentPost = created;
       navigatePreview(created.id);
     } catch (error: any) {
@@ -189,14 +189,14 @@ export class NewPostComponent implements OnInit {
   }
 
   async publish(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) {
+    const store = this.cms.activeStoreSignal();
+    if (!store) {
       this.router.navigate(['/dashboard']);
       return;
     }
 
     const navigatePublished = () => {
-      window.open(this.cms.getPublicSiteUrl(blog), '_blank');
+      window.open(this.cms.getPublicSiteUrl(store), '_blank');
     };
 
     const { title, excerpt, content } = this.form.getRawValue();
@@ -204,7 +204,7 @@ export class NewPostComponent implements OnInit {
 
     try {
       if (this.currentPost) {
-        const updated = await this.cms.updatePost(blog.id, this.currentPost.id, {
+        const updated = await this.cms.updatePost(store.id, this.currentPost.id, {
           title,
           excerpt,
           content,
@@ -216,7 +216,7 @@ export class NewPostComponent implements OnInit {
         return;
       }
 
-      const created = await this.cms.createPost(blog.id, { title, excerpt, content, status: 'published' });
+      const created = await this.cms.createPost(store.id, { title, excerpt, content, status: 'published' });
       this.currentPost = created;
       navigatePublished();
     } catch (error: any) {

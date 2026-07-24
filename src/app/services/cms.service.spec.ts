@@ -38,21 +38,21 @@ describe('CmsService public URL helpers', () => {
       }
     });
 
-    const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog' } as any;
+    const store = { id: 'store-123', name: 'Demo store', slug: 'demo-store' } as any;
 
-    expect(service.getPublicSiteUrl(blog)).toBe('https://www.demo-blog.gameoffortunes.com');
-    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://www.demo-blog.gameoffortunes.com/hello-world');
+    expect(service.getPublicSiteUrl(store)).toBe('https://www.demo-store.gameoffortunes.com');
+    expect(service.getPublicPostUrl(store, 'hello-world')).toBe('https://www.demo-store.gameoffortunes.com/hello-world');
   });
 
-  it('uses the generated blog id as the slug when no slug is provided', async () => {
-    const blog = await service.createBlog({ name: 'Demo blog' });
+  it('uses the generated store id as the slug when no slug is provided', async () => {
+    const store = await service.createStore({ name: 'Demo store' });
 
-    expect(blog.slug).toBeDefined();
-    expect(blog.slug).toContain('local-');
-    expect(blog.slug).toBe(blog.id);
+    expect(store.slug).toBeDefined();
+    expect(store.slug).toContain('local-');
+    expect(store.slug).toBe(store.id);
   });
 
-  it('treats a simple custom domain value as a blog subdomain in production', () => {
+  it('treats a simple custom domain value as a store subdomain in production', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
@@ -66,13 +66,13 @@ describe('CmsService public URL helpers', () => {
       }
     });
 
-    const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog', domain: 'jasperblogtest' } as any;
+    const store = { id: 'store-123', name: 'Demo store', slug: 'demo-store', domain: 'jasperblogtest' } as any;
 
-    expect(service.getPublicSiteUrl(blog)).toBe('https://jasperblogtest.gameoffortunes.com');
-    expect(service.getPublicPostUrl(blog, 'hello-world')).toBe('https://jasperblogtest.gameoffortunes.com/hello-world');
+    expect(service.getPublicSiteUrl(store)).toBe('https://jasperblogtest.gameoffortunes.com');
+    expect(service.getPublicPostUrl(store, 'hello-world')).toBe('https://jasperblogtest.gameoffortunes.com/hello-world');
   });
 
-  it('uses the root public domain for a bare slug blog domain', () => {
+  it('uses the root public domain for a bare slug store domain', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: {
@@ -86,9 +86,9 @@ describe('CmsService public URL helpers', () => {
       }
     });
 
-    const blog = { id: 'blog-123', name: 'Demo blog', slug: 'demo-blog', domain: 'hello' } as any;
+    const store = { id: 'store-123', name: 'Demo store', slug: 'demo-store', domain: 'hello' } as any;
 
-    expect(service.getPublicSiteUrl(blog)).toBe('https://hello.gameoffortunes.com');
-    expect(service.getPublicPostUrl(blog, 'popo')).toBe('https://hello.gameoffortunes.com/popo');
+    expect(service.getPublicSiteUrl(store)).toBe('https://hello.gameoffortunes.com');
+    expect(service.getPublicPostUrl(store, 'popo')).toBe('https://hello.gameoffortunes.com/popo');
   });
 });

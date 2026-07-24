@@ -14,7 +14,7 @@ import { Post } from '../../models/cms.models';
       <h1>{{ post.title }}</h1>
       <p class="meta">{{ post.category }} · {{ post.publishedAt | date }}</p>
       <div class="content" [innerHTML]="post.content"></div>
-      <a [routerLink]="['/site', blogId]">Back to site</a>
+      <a [routerLink]="['/site', storeId]">Back to site</a>
     </article>
     <ng-template #loading>
       <p>Loading post…</p>
@@ -29,25 +29,25 @@ import { Post } from '../../models/cms.models';
 export class PostDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(CmsService);
-  blogId: string | null = null;
+  storeId: string | null = null;
 
   readonly post$ = this.route.paramMap.pipe(
-    map((params) => ({ blogId: params.get('blogId'), slug: params.get('slug') })),
-    switchMap(async ({ blogId, slug }) => {
-      this.blogId = blogId;
-      if (!blogId || !slug) {
+    map((params) => ({ storeId: params.get('storeId'), slug: params.get('slug') })),
+    switchMap(async ({ storeId, slug }) => {
+      this.storeId = storeId;
+      if (!storeId || !slug) {
         return null;
       }
 
-      let post: Post | null | undefined = this.service.findPostBySlug(blogId, slug);
+      let post: Post | null | undefined = this.service.findPostBySlug(storeId, slug);
       if (!post) {
-        post = await this.service.loadPostBySlug(blogId, slug);
+        post = await this.service.loadPostBySlug(storeId, slug);
       }
 
       if (!post) return null;
 
       // Ensure content is hydrated from Storage if necessary
-      const hydrated = await this.service.loadPostById(blogId, post.id);
+      const hydrated = await this.service.loadPostById(storeId, post.id);
       return hydrated ?? post;
     })
   );

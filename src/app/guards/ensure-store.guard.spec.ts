@@ -1,16 +1,16 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { ensureBlogGuard } from './ensure-blog.guard';
+import { ensureStoreGuard } from './ensure-store.guard';
 import { CmsService } from '../services/cms.service';
 
-describe('ensureBlogGuard', () => {
+describe('ensureStoreGuard', () => {
   let cmsService: Partial<CmsService>;
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(() => {
     cmsService = {
-      activeBlogSignal: signal(null),
+      activeStoreSignal: signal(null),
       setActiveBlogById: jasmine.createSpy('setActiveBlogById')
     };
 
@@ -24,8 +24,8 @@ describe('ensureBlogGuard', () => {
     });
   });
 
-  it('allows access to the dashboard when no blog is selected yet', () => {
-    const result = TestBed.runInInjectionContext(() => ensureBlogGuard({ paramMap: { get: () => null } } as any, {} as any));
+  it('allows access to the dashboard when no store is selected yet', () => {
+    const result = TestBed.runInInjectionContext(() => ensureStoreGuard({ paramMap: { get: () => null } } as any, {} as any));
 
     expect(result).toBeTrue();
     expect(router.navigate).not.toHaveBeenCalled();

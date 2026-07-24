@@ -6,7 +6,7 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { AdminNavComponent } from './components/admin-nav/admin-nav.component';
 import { AuthService } from './services/auth.service';
 import { CmsService } from './services/cms.service';
-import { Blog } from './models/cms.models';
+import { Store } from './models/cms.models';
 
 @Component({
   selector: 'app-root',
@@ -19,7 +19,7 @@ export class AppComponent {
   readonly auth = inject(AuthService);
   readonly router = inject(Router);
   readonly cms = inject(CmsService);
-  readonly hostBlog = this.cms.hostBlogSignal;
+  readonly hostBlog = this.cms.hostStoreSignal;
 
   private get currentUrl(): string {
     // ignore fragment and query params when computing layout decisions

@@ -1,6 +1,6 @@
 import { Component, Input, inject, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Blog, Page, Post } from '../../models/cms.models';
+import { Store, Page, Post } from '../../models/cms.models';
 import { CmsService } from '../../services/cms.service';
 
 @Component({
@@ -14,9 +14,9 @@ import { CmsService } from '../../services/cms.service';
 
       <!-- TOP NAVIGATION -->
       <nav class="top-nav">
-        <a href="/site/{{ blog?.id }}" class="nav-link">HOME</a>
+        <a href="/site/{{ store?.id }}" class="nav-link">HOME</a>
         <ng-container *ngIf="topNavPages.length; else noTopNav">
-          <a *ngFor="let p of topNavPages" href="/site/{{ blog?.id }}/{{ p.slug }}" class="nav-link">{{ p.title }}</a>
+          <a *ngFor="let p of topNavPages" href="/site/{{ store?.id }}/{{ p.slug }}" class="nav-link">{{ p.title }}</a>
         </ng-container>
         <ng-template #noTopNav>
           <!-- no additional top nav pages configured -->
@@ -27,8 +27,8 @@ import { CmsService } from '../../services/cms.service';
       <!-- LOGO SECTION -->
       <div class="logo-section">
         <div class="logo-container">
-          <p class="logo-text" [style.color]="blog?.templateConfig?.logoColor || '#d32f2f'">
-            {{ blog?.templateConfig?.logoText || blog?.name || 'Blog' }}
+          <p class="logo-text" [style.color]="store?.templateConfig?.logoColor || '#d32f2f'">
+            {{ store?.templateConfig?.logoText || store?.name || 'Store' }}
           </p>
         </div>
       </div>
@@ -86,7 +86,7 @@ import { CmsService } from '../../services/cms.service';
               <h3 class="widget-title">Recent Posts</h3>
               <ul class="widget-list">
                 <li *ngFor="let p of publishedPosts">
-                  <a [href]="'/site/' + blog?.id + '/' + p.slug">{{ p.title }}</a>
+                  <a [href]="'/site/' + store?.id + '/' + p.slug">{{ p.title }}</a>
                 </li>
               </ul>
             </div>
@@ -102,7 +102,7 @@ import { CmsService } from '../../services/cms.service';
 
       <!-- FOOTER -->
       <footer class="site-footer">
-        <p>© {{ blog?.name }} · Content and layout are styled by your chosen theme and template.</p>
+        <p>© {{ store?.name }} · Content and layout are styled by your chosen theme and template.</p>
       </footer>
       <!-- DEBUG PANEL removed for preview/published site -->
     </section>
@@ -157,7 +157,7 @@ import { CmsService } from '../../services/cms.service';
 export class DefaultSiteTemplateComponent implements OnChanges {
   private readonly cms = inject(CmsService);
 
-  @Input() blog: Blog | null = null;
+  @Input() store: Store | null = null;
   @Input() pages: Page[] = [];
   @Input() publishedPosts: Post[] = [];
   @Input() previewPost: Post | null = null;
@@ -167,14 +167,14 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   hydratedPrimaryPost: Post | null = null;
 
   get topNavPages(): Page[] {
-    if (!this.blog?.templateConfig?.topNavPageIds || !this.pages) return [];
-    return this.blog.templateConfig.topNavPageIds
+    if (!this.store?.templateConfig?.topNavPageIds || !this.pages) return [];
+    return this.store.templateConfig.topNavPageIds
       .map((id) => this.pages.find((p) => p.id === id))
       .filter((p): p is Page => !!p);
   }
 
   get secondaryNavItems() {
-    return this.blog?.templateConfig?.secondaryNavItems || [];
+    return this.store?.templateConfig?.secondaryNavItems || [];
   }
 
   get otherPosts(): Post[] {
@@ -191,8 +191,8 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   }
 
   previewPostLink(): string {
-    if (!this.blog?.id || !this.previewPost?.slug) return '#';
-    return `/site/${this.blog.id}/${this.previewPost.slug}`;
+    if (!this.store?.id || !this.previewPost?.slug) return '#';
+    return `/site/${this.store.id}/${this.previewPost.slug}`;
   }
 
   constructor() {
@@ -203,7 +203,7 @@ export class DefaultSiteTemplateComponent implements OnChanges {
     const shouldHydrate =
       !!changes['previewPost'] ||
       !!changes['publishedPosts'] ||
-      !!changes['blog'];
+      !!changes['store'];
 
     if (shouldHydrate) {
       void this.ensureHydratedPrimaryPost();
@@ -220,14 +220,14 @@ export class DefaultSiteTemplateComponent implements OnChanges {
     }, {} as Record<string, { previous: unknown; current: unknown; firstChange: boolean }>);
 
     console.log('templateConfig change detected', {
-      templateConfig: this.blog?.templateConfig,
+      templateConfig: this.store?.templateConfig,
       changeSummary
     });
 
-    if (changes['blog'] && changes['blog'].currentValue?.templateConfig !== changes['blog'].previousValue?.templateConfig) {
-      console.log('blog.templateConfig changed', {
-        previous: changes['blog'].previousValue?.templateConfig,
-        current: changes['blog'].currentValue?.templateConfig
+    if (changes['store'] && changes['store'].currentValue?.templateConfig !== changes['store'].previousValue?.templateConfig) {
+      console.log('store.templateConfig changed', {
+        previous: changes['store'].previousValue?.templateConfig,
+        current: changes['store'].currentValue?.templateConfig
       });
     }
   }
@@ -235,7 +235,7 @@ export class DefaultSiteTemplateComponent implements OnChanges {
   // Temporary debug helper rendered on the public page to inspect live data
   debugJson(): any {
     return {
-      templateConfig: this.blog?.templateConfig || {},
+      templateConfig: this.store?.templateConfig || {},
       pages: this.pages || [],
       publishedPosts: this.publishedPosts || []
     };
@@ -248,13 +248,13 @@ export class DefaultSiteTemplateComponent implements OnChanges {
       return;
     }
 
-    const blogId = this.blog?.id;
-    if (!blogId) {
+    const storeId = this.store?.id;
+    if (!storeId) {
       this.hydratedPrimaryPost = candidate;
       return;
     }
 
-    const hydrated = await this.cms.loadPostById(blogId, candidate.id);
+    const hydrated = await this.cms.loadPostById(storeId, candidate.id);
     this.hydratedPrimaryPost = hydrated ?? candidate;
   }
 

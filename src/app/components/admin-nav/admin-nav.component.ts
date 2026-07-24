@@ -11,17 +11,17 @@ import { CmsService } from '../../services/cms.service';
     <nav class="admin-nav">
       <div class="brand">Tovrika CMS</div>
 
-      <div class="blogs">
-        <h4>Your blogs</h4>
+      <div class="stores">
+        <h4>Your stores</h4>
         <ul>
-          <li *ngFor="let b of cms.blogsSignal()">
-            <div class="blog-entry">
-              <a (click)="select(b.id)" [class.active]="cms.activeBlogSignal()?.id === b.id">{{ b.name }}</a>
-              <button class="delete-btn" (click)="confirmDelete(b.id, b.name, $event)" title="Delete blog">×</button>
+          <li *ngFor="let b of cms.storesSignal()">
+            <div class="store-entry">
+              <a (click)="select(b.id)" [class.active]="cms.activeStoreSignal()?.id === b.id">{{ b.name }}</a>
+              <button class="delete-btn" (click)="confirmDelete(b.id, b.name, $event)" title="Delete store">×</button>
             </div>
           </li>
         </ul>
-        <a routerLink="/dashboard" class="btn ghost">+ New Blog</a>
+        <a routerLink="/dashboard" class="btn ghost">+ New Store</a>
       </div>
 
       <ul class="main-links">
@@ -40,9 +40,9 @@ import { CmsService } from '../../services/cms.service';
       <!-- DELETE CONFIRMATION MODAL -->
       <div class="modal" *ngIf="showDeleteConfirm">
         <div class="modal-content">
-          <h3>Delete Blog?</h3>
+          <h3>Delete Store?</h3>
           <p>Are you sure you want to delete <strong>{{ deleteBlogName }}</strong>?</p>
-          <p class="warning">This will permanently delete the blog and all its posts and pages.</p>
+          <p class="warning">This will permanently delete the store and all its posts and pages.</p>
           <div class="modal-actions">
             <button class="btn btn-danger" (click)="confirmDeleteAction()">Delete</button>
             <button class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
@@ -54,11 +54,11 @@ import { CmsService } from '../../services/cms.service';
   styles: [
     `.admin-nav { display:flex; flex-direction:column; gap:1rem; padding:1rem; background:white; border-right:1px solid #e6eefb; min-height:100vh; position:relative; }`,
     `.admin-nav .brand { font-weight:800; color:#1d4ed8; text-transform:uppercase; letter-spacing:0.08em; font-size:0.95rem; padding:0.5rem 0; }`,
-    `.blogs h4 { margin:0 0 0.25rem 0; color:#374151; font-size:0.9rem; }`,
-    `.blogs ul { list-style:none; padding:0; margin:0 0 0.5rem 0; display:flex; flex-direction:column; gap:0.5rem; }`,
-    `.blog-entry { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }`,
-    `.blogs a { color:#0f172a; text-decoration:none; padding:0.25rem 0.25rem; display:block; flex:1; }`,
-    `.blogs a.active { font-weight:800; color:#1d4ed8; }`,
+    `.stores h4 { margin:0 0 0.25rem 0; color:#374151; font-size:0.9rem; }`,
+    `.stores ul { list-style:none; padding:0; margin:0 0 0.5rem 0; display:flex; flex-direction:column; gap:0.5rem; }`,
+    `.store-entry { display:flex; align-items:center; justify-content:space-between; gap:0.5rem; }`,
+    `.stores a { color:#0f172a; text-decoration:none; padding:0.25rem 0.25rem; display:block; flex:1; }`,
+    `.stores a.active { font-weight:800; color:#1d4ed8; }`,
     `.delete-btn { width: 2rem; height: 2rem; border: none; background: transparent; color: #ef4444; font-size: 1.2rem; cursor: pointer; border-radius: 0.5rem; }`,
     `.delete-btn:hover { background: rgba(239, 68, 68, 0.12); }`,
     `.main-links { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.25rem; }`,
@@ -90,9 +90,9 @@ export class AdminNavComponent {
     this.router.navigate(['/dashboard', id]);
   }
 
-  confirmDelete(blogId: string, blogName: string, event: Event) {
+  confirmDelete(storeId: string, blogName: string, event: Event) {
     event.stopPropagation();
-    this.deleteBlogId = blogId;
+    this.deleteBlogId = storeId;
     this.deleteBlogName = blogName;
     this.showDeleteConfirm = true;
   }
@@ -104,19 +104,19 @@ export class AdminNavComponent {
   }
 
   async confirmDeleteAction() {
-    await this.cms.deleteBlogWithCascade(this.deleteBlogId);
+    await this.cms.deleteStoreWithCascade(this.deleteBlogId);
     this.showDeleteConfirm = false;
     this.deleteBlogId = '';
     this.deleteBlogName = '';
     
-    if (this.cms.activeBlogSignal()?.id === this.deleteBlogId) {
+    if (this.cms.activeStoreSignal()?.id === this.deleteBlogId) {
       this.router.navigate(['/dashboard']);
     }
   }
 
   newPost() {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) {
+    const store = this.cms.activeStoreSignal();
+    if (!store) {
       this.router.navigate(['/dashboard']);
       return;
     }
@@ -124,15 +124,15 @@ export class AdminNavComponent {
   }
 
   openTheme() {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
-    this.router.navigate(['/dashboard', blog.id, 'theme']);
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
+    this.router.navigate(['/dashboard', store.id, 'theme']);
   }
 
   openTemplate() {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
-    this.router.navigate(['/dashboard', blog.id, 'template-designer']);
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
+    this.router.navigate(['/dashboard', store.id, 'template-designer']);
   }
 
   showDeleteConfirm = false;

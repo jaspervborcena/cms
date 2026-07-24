@@ -9,12 +9,12 @@ import { CmsService } from '../../services/cms.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div *ngIf="blog(); else missing">
+    <div *ngIf="store(); else missing">
       <ng-container #templateContainer></ng-container>
     </div>
 
     <ng-template #missing>
-      <p>Blog not found.</p>
+      <p>Store not found.</p>
     </ng-template>
   `,
   styles: []
@@ -24,56 +24,56 @@ export class SitePageComponent implements AfterViewInit, OnInit, OnDestroy {
   private readonly service = inject(CmsService);
   @ViewChild('templateContainer', { read: ViewContainerRef }) templateContainer!: ViewContainerRef;
 
-  private blogId = signal<string | null>(null);
+  private storeId = signal<string | null>(null);
   
-  blog = computed(() => {
-    const id = this.blogId();
+  store = computed(() => {
+    const id = this.storeId();
     if (!id) return null;
-    return this.service.blogsSignal().find((b) => b.id === id) ?? null;
+    return this.service.storesSignal().find((b) => b.id === id) ?? null;
   });
 
   pages = computed(() => {
-    const id = this.blogId();
+    const id = this.storeId();
     if (!id) return [] as Page[];
-    return this.service.pagesSignal().filter((page) => page.blogId === id);
+    return this.service.pagesSignal().filter((page) => page.storeId === id);
   });
 
   publishedPosts = computed(() => {
-    const id = this.blogId();
+    const id = this.storeId();
     if (!id) return [] as any[];
-    return this.service.postsSignal().filter((post) => post.blogId === id && post.status === 'published');
+    return this.service.postsSignal().filter((post) => post.storeId === id && post.status === 'published');
   });
 
   themeCssUrl = computed(() => {
-    const b = this.blog();
+    const b = this.store();
     return this.service.getThemeCssUrl(b?.theme);
   });
 
   constructor() {
-    const blogId = this.route.snapshot.paramMap.get('blogId');
-    if (blogId) {
-      this.blogId.set(blogId);
+    const storeId = this.route.snapshot.paramMap.get('storeId');
+    if (storeId) {
+      this.storeId.set(storeId);
     }
 
-    // Watch for changes to blog, pages, or posts and reload template
+    // Watch for changes to store, pages, or posts and reload template
     effect(() => {
-      const b = this.blog();
+      const b = this.store();
       const p = this.pages();
       const posts = this.publishedPosts();
       const cssUrl = this.themeCssUrl();
       
       if (b && this.templateContainer) {
           // diagnostic: log template config and current pages/posts when loading template
-          console.log('Loading site template for blog', b.id, { templateConfig: b.templateConfig, pages: this.pages(), publishedPosts: this.publishedPosts() });
+          console.log('Loading site template for store', b.id, { templateConfig: b.templateConfig, pages: this.pages(), publishedPosts: this.publishedPosts() });
           void this.loadTemplate();
       }
     });
   }
 
   ngOnInit(): void {
-    const blogId = this.blogId();
-    if (blogId) {
-      this.service.setActiveBlogById(blogId);
+    const storeId = this.storeId();
+    if (storeId) {
+      this.service.setActiveBlogById(storeId);
     }
   }
 
@@ -86,7 +86,7 @@ export class SitePageComponent implements AfterViewInit, OnInit, OnDestroy {
   }
 
   private async loadTemplate(): Promise<void> {
-    const b = this.blog();
+    const b = this.store();
     if (!b || !this.templateContainer) return;
 
     const { DefaultSiteTemplateComponent } = await import('../default-site-template/default-site-template.component');
@@ -96,7 +96,7 @@ export class SitePageComponent implements AfterViewInit, OnInit, OnDestroy {
 
     // Pass data to the template component
     const instance = componentRef.instance as InstanceType<typeof DefaultSiteTemplateComponent>;
-    instance.blog = b;
+    instance.store = b;
     instance.pages = this.pages();
     instance.publishedPosts = this.publishedPosts();
     instance.themeCssUrl = this.themeCssUrl();

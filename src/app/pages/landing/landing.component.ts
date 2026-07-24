@@ -3,7 +3,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { CmsService } from '../../services/cms.service';
-import { Blog, Page, Post } from '../../models/cms.models';
+import { Store, Page, Post } from '../../models/cms.models';
 import { DefaultSiteTemplateComponent } from '../default-site-template/default-site-template.component';
 
 @Component({
@@ -12,9 +12,9 @@ import { DefaultSiteTemplateComponent } from '../default-site-template/default-s
   imports: [CommonModule, RouterLink, DefaultSiteTemplateComponent],
   template: `
     <ng-container *ngIf="!loadingBlogHost">
-      <ng-container *ngIf="blog; else genericLanding">
+      <ng-container *ngIf="store; else genericLanding">
         <app-default-site-template
-          [blog]="blog"
+          [store]="store"
           [pages]="pages"
           [publishedPosts]="publishedPosts"
           [themeCssUrl]="themeCssUrl"
@@ -106,7 +106,7 @@ export class LandingComponent {
   private route = inject(ActivatedRoute);
   focusPlans = false;
 
-  blog: Blog | null = null;
+  store: Store | null = null;
   pages: Page[] = [];
   publishedPosts: Post[] = [];
   themeCssUrl = '';
@@ -125,7 +125,7 @@ export class LandingComponent {
     });
 
     effect(() => {
-      const blog = this.cms.hostBlogSignal();
+      const store = this.cms.hostStoreSignal();
       const pages = this.cms.pagesSignal();
       const posts = this.cms.postsSignal();
       const blogsLoaded = this.cms.blogsLoadedSignal();
@@ -135,8 +135,8 @@ export class LandingComponent {
         return;
       }
 
-      if (!blog) {
-        this.blog = null;
+      if (!store) {
+        this.store = null;
         this.pages = [];
         this.publishedPosts = [];
         this.themeCssUrl = '';
@@ -144,10 +144,10 @@ export class LandingComponent {
         return;
       }
 
-      this.blog = blog;
-      this.pages = pages.filter((page) => page.blogId === blog.id);
-      this.publishedPosts = posts.filter((post) => post.blogId === blog.id && post.status === 'published');
-      this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
+      this.store = store;
+      this.pages = pages.filter((page) => page.storeId === store.id);
+      this.publishedPosts = posts.filter((post) => post.storeId === store.id && post.status === 'published');
+      this.themeCssUrl = this.cms.getThemeCssUrl(store.theme);
       this.loadingBlogHost = false;
     });
   }

@@ -11,9 +11,9 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <section class="template-designer">
-      <div *ngIf="cms.activeBlogSignal() as blog; else noBlog" class="designer-container">
+      <div *ngIf="cms.activeStoreSignal() as store; else noBlog" class="designer-container">
         <h2>Template Designer</h2>
-        <p>Customize your blog template. Add, edit, or remove sections.</p>
+        <p>Customize your store template. Add, edit, or remove sections.</p>
 
         <div class="designer-layout">
           <!-- PREVIEW PANE -->
@@ -24,7 +24,7 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
               <nav class="top-nav" *ngIf="sections.topNav.enabled">
                 <a href="#" class="nav-link">HOME</a>
                 <ng-container *ngIf="topNavPages.length; else noTopNavPages">
-                  <a *ngFor="let page of topNavPages" [routerLink]="['/site', blog.id, page.slug]" class="nav-link">
+                  <a *ngFor="let page of topNavPages" [routerLink]="['/site', store.id, page.slug]" class="nav-link">
                     {{ page.title }}
                   </a>
                 </ng-container>
@@ -36,7 +36,7 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
 
               <!-- LOGO SECTION -->
               <div class="logo-section" *ngIf="sections.logo.enabled">
-                <p class="logo-text">{{ sections.logo.label || blog.name }}</p>
+                <p class="logo-text">{{ sections.logo.label || store.name }}</p>
               </div>
 
               <!-- SECONDARY NAVIGATION -->
@@ -71,7 +71,7 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
 
               <!-- FOOTER -->
               <footer class="site-footer" *ngIf="sections.footer.enabled">
-                <p>© {{ blog.name }} · Content and layout are styled by your chosen theme and template.</p>
+                <p>© {{ store.name }} · Content and layout are styled by your chosen theme and template.</p>
               </footer>
             </div>
           </div>
@@ -163,7 +163,7 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
               <div class="edit-fields">
                 <label *ngIf="editingElement === 'logo'">
                   Logo Text
-                  <input type="text" [(ngModel)]="sections.logo.label" placeholder="Blog name" />
+                  <input type="text" [(ngModel)]="sections.logo.label" placeholder="Store name" />
                 </label>
 
                 <div *ngIf="editingElement === 'topNav'">
@@ -182,7 +182,7 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
                       <input type="text" [(ngModel)]="item.label" placeholder="Nav label" class="input-small" />
                       <select [(ngModel)]="item.url" class="input-small">
                         <option value="">Custom URL</option>
-                        <option *ngFor="let page of availablePages" [value]="'/site/' + blog.id + '/' + page.slug">
+                        <option *ngFor="let page of availablePages" [value]="'/site/' + store.id + '/' + page.slug">
                           {{ page.title }}
                         </option>
                       </select>
@@ -243,13 +243,13 @@ import { Page, Post, TemplateConfig, NavigationItem } from '../../models/cms.mod
         </div>
 
         <div class="action-buttons">
-          <button (click)="saveTemplate(blog.id)" class="btn btn-primary">Save Template</button>
+          <button (click)="saveTemplate(store.id)" class="btn btn-primary">Save Template</button>
           <button (click)="cancel()" class="btn btn-secondary">Cancel</button>
         </div>
       </div>
 
       <ng-template #noBlog>
-        <p>No active blog selected.</p>
+        <p>No active store selected.</p>
       </ng-template>
     </section>
   `,
@@ -325,7 +325,7 @@ export class TemplateDesignerComponent implements OnInit {
 
   sections = {
     topNav: { enabled: true, label: 'Top Navigation' },
-    logo: { enabled: true, label: 'Blog Name' },
+    logo: { enabled: true, label: 'Store Name' },
     secondaryNav: { enabled: true, label: 'Secondary Navigation' },
     updateButton: { enabled: true, label: 'Update Button' },
     posts: { enabled: true, label: 'RECENT POSTS' },
@@ -339,11 +339,11 @@ export class TemplateDesignerComponent implements OnInit {
   };
 
   get topNavPages(): Page[] {
-    return this.cms.blogPagesSignal().filter((page) => this.templateConfig.topNavPageIds?.includes(page.id));
+    return this.cms.storePagesSignal().filter((page) => this.templateConfig.topNavPageIds?.includes(page.id));
   }
 
   get availablePages(): Page[] {
-    return this.cms.blogPagesSignal();
+    return this.cms.storePagesSignal();
   }
 
   ngOnInit() {
@@ -351,11 +351,11 @@ export class TemplateDesignerComponent implements OnInit {
   }
 
   async loadTemplate() {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
 
     this.samplePosts = this.cms.publishedPostsSignal().slice(0, 5);
-    const config = blog.templateConfig || {};
+    const config = store.templateConfig || {};
     this.templateConfig = {
       topNavPageIds: config.topNavPageIds || [],
       secondaryNavItems: config.secondaryNavItems || [],
@@ -392,10 +392,10 @@ export class TemplateDesignerComponent implements OnInit {
       this.templateConfig.topNavPageIds = [...this.templateConfig.topNavPageIds, pageId];
     }
 
-    const blog = this.cms.activeBlogSignal();
-    if (blog) {
+    const store = this.cms.activeStoreSignal();
+    if (store) {
       try {
-        await this.cms.setTemplateConfig(blog.id, this.templateConfig);
+        await this.cms.setTemplateConfig(store.id, this.templateConfig);
       } catch (err) {
         console.error('Failed to persist top nav selection', err);
       }
@@ -422,22 +422,22 @@ export class TemplateDesignerComponent implements OnInit {
   }
 
   isInSecondaryNav(pageId: string): boolean {
-    return !!this.templateConfig.secondaryNavItems?.some((item) => item.url === `/site/${this.cms.activeBlogSignal()?.id}/${this.availablePages.find((page) => page.id === pageId)?.slug}`);
+    return !!this.templateConfig.secondaryNavItems?.some((item) => item.url === `/site/${this.cms.activeStoreSignal()?.id}/${this.availablePages.find((page) => page.id === pageId)?.slug}`);
   }
 
   getPageRoute(page: Page): string {
-    const blog = this.cms.activeBlogSignal();
-    return blog ? `/site/${blog.id}/${page.slug}` : `/${page.slug}`;
+    const store = this.cms.activeStoreSignal();
+    return store ? `/site/${store.id}/${page.slug}` : `/${page.slug}`;
   }
 
   async toggleSecondaryNavPage(pageId: string): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
 
     const page = this.availablePages.find((p) => p.id === pageId);
     if (!page) return;
 
-    const url = `/site/${blog.id}/${page.slug}`;
+    const url = `/site/${store.id}/${page.slug}`;
     const existingIndex = this.templateConfig.secondaryNavItems?.findIndex((item) => item.url === url) ?? -1;
 
     if (!this.templateConfig.secondaryNavItems) {
@@ -454,7 +454,7 @@ export class TemplateDesignerComponent implements OnInit {
     }
 
     try {
-      await this.cms.setTemplateConfig(blog.id, this.templateConfig);
+      await this.cms.setTemplateConfig(store.id, this.templateConfig);
     } catch (err) {
       console.error('Failed to persist secondary nav change', err);
     }
@@ -489,15 +489,15 @@ export class TemplateDesignerComponent implements OnInit {
     this.loadTemplate();
   }
 
-  async saveTemplate(blogId: string) {
-    await this.cms.setTemplateConfig(blogId, this.templateConfig);
-    this.router.navigate(['/dashboard', blogId]);
+  async saveTemplate(storeId: string) {
+    await this.cms.setTemplateConfig(storeId, this.templateConfig);
+    this.router.navigate(['/dashboard', storeId]);
   }
 
   cancel() {
-    const blog = this.cms.activeBlogSignal();
-    if (blog) {
-      this.router.navigate(['/dashboard', blog.id]);
+    const store = this.cms.activeStoreSignal();
+    if (store) {
+      this.router.navigate(['/dashboard', store.id]);
     }
   }
 }

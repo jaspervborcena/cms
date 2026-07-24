@@ -10,7 +10,7 @@ import { NavigationItem, TemplateConfig } from '../../models/cms.models';
   imports: [CommonModule, FormsModule],
   template: `
     <section class="template-config-container">
-      <div *ngIf="cms.activeBlogSignal() as blog; else noBlog">
+      <div *ngIf="cms.activeStoreSignal() as store; else noBlog">
         <!-- LIVE PREVIEW -->
         <div class="preview-section">
           <h3>Live Preview</h3>
@@ -27,7 +27,7 @@ import { NavigationItem, TemplateConfig } from '../../models/cms.models';
             <!-- Logo -->
             <div class="preview-logo-section">
               <p class="preview-logo-text" [style.color]="config?.logoColor || '#d32f2f'">
-                {{ config?.logoText || blog.name }}
+                {{ config?.logoText || store.name }}
               </p>
             </div>
 
@@ -147,7 +147,7 @@ import { NavigationItem, TemplateConfig } from '../../models/cms.models';
       </div>
 
       <ng-template #noBlog>
-        <p class="error-message">No active blog selected.</p>
+        <p class="error-message">No active store selected.</p>
       </ng-template>
     </section>
   `,
@@ -213,15 +213,15 @@ export class TemplateConfigComponent implements OnInit {
   }
 
   private loadConfig(): void {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
 
-    this.config = blog.templateConfig || {};
+    this.config = store.templateConfig || {};
     if (!this.config.topNavPageIds) this.config.topNavPageIds = [];
     if (!this.config.secondaryNavItems) this.config.secondaryNavItems = [];
     if (!this.config.sidebarPageIds) this.config.sidebarPageIds = [];
 
-    this.allPages = this.cms.pagesSignal().filter((p) => p.blogId === blog.id);
+    this.allPages = this.cms.pagesSignal().filter((p) => p.storeId === store.id);
     this.updateSortedNav();
   }
 
@@ -287,9 +287,9 @@ export class TemplateConfigComponent implements OnInit {
   }
 
   async saveConfig(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
-    await this.cms.setTemplateConfig(blog.id, this.config);
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
+    await this.cms.setTemplateConfig(store.id, this.config);
     alert('Template configuration saved!');
   }
 

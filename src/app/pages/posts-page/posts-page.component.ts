@@ -27,9 +27,9 @@ export class PostsPageComponent {
   readonly service = inject(CmsService);
 
   async ngOnInit(): Promise<void> {
-    const blog = this.service.activeBlogSignal();
-    if (blog) {
-      await this.service.fetchPostsForBlog(blog.id);
+    const store = this.service.activeStoreSignal();
+    if (store) {
+      await this.service.fetchPostsForBlog(store.id);
     }
   }
 }

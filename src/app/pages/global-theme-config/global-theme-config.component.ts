@@ -30,7 +30,7 @@ import { GlobalThemeSettings } from '../../models/cms.models';
           <nav class="preview-secondary">
             <span class="nav-item">Menu</span>
             <span class="nav-item">Gallery</span>
-            <span class="nav-item">Blog</span>
+            <span class="nav-item">Store</span>
           </nav>
 
           <div class="preview-content">

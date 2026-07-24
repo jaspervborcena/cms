@@ -22,9 +22,9 @@ interface BlogTheme {
   template: `
     <section class="theme-editor">
       <h2>Theme CSS Editor</h2>
-      <p>Modify the theme CSS for <strong>{{ cms.activeBlogSignal()?.name }}</strong>.</p>
+      <p>Modify the theme CSS for <strong>{{ cms.activeStoreSignal()?.name }}</strong>.</p>
       
-      <div *ngIf="cms.activeBlogSignal() as blog; else noBlog" class="editor-container">
+      <div *ngIf="cms.activeStoreSignal() as store; else noBlog" class="editor-container">
         <div class="editor-section">
           <h3>CSS Variables</h3>
           <div class="css-variables">
@@ -89,7 +89,7 @@ interface BlogTheme {
               <a [style.color]="themeVars.textColor === '#1a1a1a' ? '#fff' : themeVars.textColor">HOME</a>
             </nav>
             <div class="preview-logo" [style.backgroundColor]="themeVars.backgroundColor">
-              <p class="preview-logo-text" [style.color]="themeVars.primaryColor">{{ blog.name }}</p>
+              <p class="preview-logo-text" [style.color]="themeVars.primaryColor">{{ store.name }}</p>
             </div>
             <div class="preview-content" [style.color]="themeVars.textColor">
               <h3>Sample Post</h3>
@@ -99,13 +99,13 @@ interface BlogTheme {
         </div>
 
         <div class="action-buttons">
-          <button (click)="saveTheme(blog.id)" class="btn btn-primary">Save Theme</button>
+          <button (click)="saveTheme(store.id)" class="btn btn-primary">Save Theme</button>
           <button (click)="cancel()" class="btn btn-secondary">Cancel</button>
         </div>
       </div>
 
       <ng-template #noBlog>
-        <p>No active blog selected.</p>
+        <p>No active store selected.</p>
       </ng-template>
     </section>
   `,
@@ -159,11 +159,11 @@ export class ThemeSettingsComponent implements OnInit {
   }
 
   loadTheme() {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
 
     // Load theme from localStorage for now (can be saved to Firestore later)
-    const key = `blog-theme-${blog.id}`;
+    const key = `store-theme-${store.id}`;
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
@@ -181,25 +181,25 @@ export class ThemeSettingsComponent implements OnInit {
     };
   }
 
-  async saveTheme(blogId: string) {
-    // Save theme to localStorage per blog
-    const key = `blog-theme-${blogId}`;
+  async saveTheme(storeId: string) {
+    // Save theme to localStorage per store
+    const key = `store-theme-${storeId}`;
     localStorage.setItem(key, JSON.stringify(this.themeVars));
     
     // Optionally save to Firestore for persistence
     try {
-      await this.cms.saveBlogThemeSettings(blogId, this.themeVars);
+      await this.cms.saveBlogThemeSettings(storeId, this.themeVars);
     } catch (error) {
       console.warn('Could not save theme to Firestore:', error);
     }
 
-    this.router.navigate(['/dashboard', blogId]);
+    this.router.navigate(['/dashboard', storeId]);
   }
 
   cancel() {
-    const blog = this.cms.activeBlogSignal();
-    if (blog) {
-      this.router.navigate(['/dashboard', blog.id]);
+    const store = this.cms.activeStoreSignal();
+    if (store) {
+      this.router.navigate(['/dashboard', store.id]);
     }
   }
 }

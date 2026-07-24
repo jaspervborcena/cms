@@ -11,15 +11,15 @@ import { AuthService } from '../../services/auth.service';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="onboard">
-      <h1>Get started with your first blog</h1>
+      <h1>Get started with your first store</h1>
 
       <div class="steps">
         <div *ngIf="step === 1">
-          <form [formGroup]="form1" (ngSubmit)="createBlog()">
-            <label>Blog name<input formControlName="name" /></label>
+          <form [formGroup]="form1" (ngSubmit)="createStore()">
+            <label>Store name<input formControlName="name" /></label>
             <label>Short description<textarea formControlName="description"></textarea></label>
             <label>Category<select formControlName="category"><option value="personal">Personal</option><option value="business">Business</option><option value="ecommerce">E‑commerce</option></select></label>
-            <div class="actions"><button type="submit" [disabled]="form1.invalid">Create blog</button></div>
+            <div class="actions"><button type="submit" [disabled]="form1.invalid">Create store</button></div>
           </form>
         </div>
 
@@ -90,15 +90,15 @@ export class OnboardingComponent {
 
   form3 = this.fb.nonNullable.group({ domain: [''] });
 
-  async createBlog(): Promise<void> {
+  async createStore(): Promise<void> {
     if (this.form1.invalid) return;
     const { name, description, category } = this.form1.getRawValue();
     const ownerUid = this.auth.authSignal() ? this.auth.authSignal()!.uid : null;
-    const blog = await this.cms.createBlog({ name, description, category, ownerUid });
+    const store = await this.cms.createStore({ name, description, category, ownerUid });
     this.step = 2;
-    // store blog id locally already handled by CmsService
-    this.selectedTheme = blog.theme ?? 'Default';
-    this.selectedTemplate = blog.template ?? 'Default';
+    // store store id locally already handled by CmsService
+    this.selectedTheme = store.theme ?? 'Default';
+    this.selectedTemplate = store.template ?? 'Default';
   }
 
   back() { this.step = Math.max(1, this.step - 1); }
@@ -108,8 +108,8 @@ export class OnboardingComponent {
   selectTemplate(t: string) { this.selectedTemplate = t; }
 
   async applyTheme(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
     
     // Find the theme ID from the label
     const themeLabel = this.selectedTheme ?? 'Default';
@@ -122,21 +122,21 @@ export class OnboardingComponent {
     const templateId = templateObj?.id ?? 'default';
     
     await Promise.all([
-      this.cms.setBlogTheme(blog.id, themeId),
-      this.cms.setBlogTemplate(blog.id, templateId)
+      this.cms.setStoreTheme(store.id, themeId),
+      this.cms.setStoreTemplate(store.id, templateId)
     ]);
     this.step = 3;
   }
 
   async finish(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) return;
+    const store = this.cms.activeStoreSignal();
+    if (!store) return;
     const domain = this.form3.getRawValue().domain || undefined;
     if (domain) {
-      await this.cms.setBlogDomain(blog.id, domain);
+      await this.cms.setStoreDomain(store.id, domain);
     }
 
-    // navigate to blog-scoped dashboard
-    this.router.navigate(['/dashboard', blog.id]);
+    // navigate to store-scoped dashboard
+    this.router.navigate(['/dashboard', store.id]);
   }
 }

@@ -20,21 +20,21 @@ import { AuthService } from '../../services/auth.service';
         </div>
 
         <section class="posts-list">
-          <div *ngIf="!cms.activeBlogSignal()" class="empty-state">
-            <h2>No blog selected</h2>
-            <p>Create your first blog to unlock the dashboard features.</p>
+          <div *ngIf="!cms.activeStoreSignal()" class="empty-state">
+            <h2>No store selected</h2>
+            <p>Create your first store to unlock the dashboard features.</p>
             <div class="actions">
-              <a routerLink="/dashboard" class="btn">Create a blog</a>
+              <a routerLink="/dashboard" class="btn">Create a store</a>
             </div>
           </div>
 
           <div class="notices">
             <div class="notice">Notices (1) — Try the new beta features.</div>
           </div>
-          <div *ngIf="cms.activeBlogSignal()">
+          <div *ngIf="cms.activeStoreSignal()">
             <div *ngIf="cms.filteredPostsSignal().length === 0" class="empty-state">
               <h3>No posts yet</h3>
-              <p>Start by creating your first post for <strong>{{ cms.activeBlogSignal()?.name }}</strong>.</p>
+              <p>Start by creating your first post for <strong>{{ cms.activeStoreSignal()?.name }}</strong>.</p>
               <div class="actions">
                 <a routerLink="/posts/new" class="btn">Create first post</a>
               </div>
@@ -77,9 +77,9 @@ export class DashboardComponent {
   }
 
   async ngOnInit(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (blog) {
-      await this.cms.fetchPostsForBlog(blog.id, 10);
+    const store = this.cms.activeStoreSignal();
+    if (store) {
+      await this.cms.fetchPostsForBlog(store.id, 10);
     }
   }
 }

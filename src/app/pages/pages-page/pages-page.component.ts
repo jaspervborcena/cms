@@ -23,17 +23,17 @@ import { Page } from '../../models/cms.models';
         <aside class="page-list-panel">
           <div class="list-heading">
             <h2>Your pages</h2>
-            <span>{{ service.blogPagesSignal().length }} pages</span>
+            <span>{{ service.storePagesSignal().length }} pages</span>
           </div>
 
-          <div *ngIf="service.blogPagesSignal().length === 0" class="empty-state">
+          <div *ngIf="service.storePagesSignal().length === 0" class="empty-state">
             <p>No pages created yet. Click New Page to get started.</p>
           </div>
 
-          <div class="page-list" *ngIf="service.blogPagesSignal().length > 0">
+          <div class="page-list" *ngIf="service.storePagesSignal().length > 0">
             <button
               class="page-item"
-              *ngFor="let page of service.blogPagesSignal()"
+              *ngFor="let page of service.storePagesSignal()"
               [class.active]="selectedPage()?.id === page.id"
               type="button"
               (click)="selectPage(page)">
@@ -187,9 +187,9 @@ export class PagesPageComponent {
   }
 
   async savePage(): Promise<void> {
-    const blog = this.service.activeBlogSignal();
-    if (!blog) {
-      this.error.set('Select a blog first before saving this page.');
+    const store = this.service.activeStoreSignal();
+    if (!store) {
+      this.error.set('Select a store first before saving this page.');
       return;
     }
 
@@ -218,7 +218,7 @@ export class PagesPageComponent {
           slug,
           excerpt,
           content,
-          blogId: blog.id
+          storeId: store.id
         });
         this.selectPage(created);
       }

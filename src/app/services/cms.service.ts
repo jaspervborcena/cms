@@ -2,7 +2,7 @@
 import { collection, collectionData, Firestore, orderBy, query, where, getDocs, addDoc, setDoc, doc, getDoc, updateDoc, deleteDoc, limit } from '@angular/fire/firestore';
 import { Storage, getDownloadURL, ref, uploadString } from '@angular/fire/storage';
 import { catchError, map, of } from 'rxjs';
-import { Page, Post, Blog, TemplateConfig, NavigationItem, GlobalThemeSettings } from '../models/cms.models';
+import { Page, Post, Store, TemplateConfig, NavigationItem, GlobalThemeSettings } from '../models/cms.models';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -13,24 +13,24 @@ export class CmsService {
 
   readonly postsSignal = signal<Post[]>([]);
   readonly pagesSignal = signal<Page[]>([]);
-  readonly blogsSignal = signal<Blog[]>([]);
+  readonly storesSignal = signal<Store[]>([]);
   readonly blogsLoadedSignal = signal(false);
-  readonly activeBlogSignal = signal<Blog | null>(null);
+  readonly activeStoreSignal = signal<Store | null>(null);
   readonly draftSignal = signal<Post | null>(null);
   readonly previewSignal = signal<Post | null>(null);
   readonly globalThemeSignal = signal<GlobalThemeSettings | null>(null);
-  readonly hostBlogSignal = computed(() => this.findBlogByHostName(this.getCurrentHostname()));
+  readonly hostStoreSignal = computed(() => this.findStoreByHostName(this.getCurrentHostname()));
 
   readonly filteredPostsSignal = computed(() => {
-    const blog = this.activeBlogSignal();
-    if (!blog) return [] as Post[];
-    return this.postsSignal().filter((post) => post.blogId === blog.id);
+    const store = this.activeStoreSignal();
+    if (!store) return [] as Post[];
+    return this.postsSignal().filter((post) => post.storeId === store.id);
   });
 
   readonly publishedPostsSignal = computed(() => {
-    const blog = this.activeBlogSignal();
-    if (!blog) return [] as Post[];
-    return this.postsSignal().filter((post) => post.blogId === blog.id && post.status === 'published');
+    const store = this.activeStoreSignal();
+    if (!store) return [] as Post[];
+    return this.postsSignal().filter((post) => post.storeId === store.id && post.status === 'published');
   });
 
   private readonly primaryPageOrder = ['data-privacy', 'about'];
@@ -50,9 +50,9 @@ export class CmsService {
   }
 
   readonly draftPostsSignal = computed(() => {
-    const blog = this.activeBlogSignal();
-    if (!blog) return [] as Post[];
-    return this.postsSignal().filter((post) => post.blogId === blog.id && post.status === 'draft');
+    const store = this.activeStoreSignal();
+    if (!store) return [] as Post[];
+    return this.postsSignal().filter((post) => post.storeId === store.id && post.status === 'draft');
   });
 
   readonly popularPostsSignal = computed(() => [...this.postsSignal()].sort((a, b) => b.views - a.views).slice(0, 3));
@@ -63,16 +63,16 @@ export class CmsService {
       .slice(0, 3)
   );
 
-  readonly blogPagesSignal = computed(() => {
-    const blog = this.activeBlogSignal();
-    if (!blog) return [] as Page[];
-    return this.pagesSignal().filter((page) => page.blogId === blog.id);
+  readonly storePagesSignal = computed(() => {
+    const store = this.activeStoreSignal();
+    if (!store) return [] as Page[];
+    return this.pagesSignal().filter((page) => page.storeId === store.id);
   });
 
   readonly hostBlogPagesSignal = computed(() => {
-    const blog = this.hostBlogSignal();
-    if (!blog) return [] as Page[];
-    return this.pagesSignal().filter((page) => page.blogId === blog.id);
+    const store = this.hostStoreSignal();
+    if (!store) return [] as Page[];
+    return this.pagesSignal().filter((page) => page.storeId === store.id);
   });
 
   constructor() {
@@ -84,18 +84,18 @@ export class CmsService {
   readonly defaultTheme = 'modern';
   readonly defaultTemplate = 'default';
 
-  // Root public domain used for generated blog subdomains
+  // Root public domain used for generated store subdomains
   private readonly rootPublicDomain = 'gameoffortunes.com';
 
   private loadBlogs(): void {
-    const blogsCollection = collection(this.firestore, 'blogs');
+    const blogsCollection = collection(this.firestore, 'stores');
     collectionData(query(blogsCollection, orderBy('createdAt', 'desc')), { idField: 'id' })
       .pipe(
         map((items: Array<Record<string, unknown>>) =>
           items.map((item) => ({
             id: String(item['id'] ?? ''),
             uid: item['uid'] ? String(item['uid']) : undefined,
-            name: String(item['name'] ?? 'Untitled blog'),
+            name: String(item['name'] ?? 'Untitled store'),
             slug: item['slug'] ? String(item['slug']) : this.slugify(String(item['name'] ?? '')),
             description: item['description'] ? String(item['description']) : undefined,
             category: item['category'] ? String(item['category']) : undefined,
@@ -106,21 +106,21 @@ export class CmsService {
             template: item['template'] ? String(item['template']) : this.defaultTemplate,
             domain: item['domain'] ? String(item['domain']) : undefined,
             templateConfig: item['templateConfig'] ? (item['templateConfig'] as TemplateConfig) : undefined
-          } as Blog))
+          } as Store))
         ),
-        catchError(() => of([] as Blog[]))
+        catchError(() => of([] as Store[]))
       )
-      .subscribe((blogs) => {
-        this.blogsSignal.set(blogs);
+      .subscribe((stores) => {
+        this.storesSignal.set(stores);
         this.blogsLoadedSignal.set(true);
       });
   }
 
-  async createBlog(data: { name: string; description?: string; category?: string; ownerUid?: string | null; slug?: string | null }): Promise<Blog> {
+  async createStore(data: { name: string; description?: string; category?: string; ownerUid?: string | null; slug?: string | null }): Promise<Store> {
     const now = new Date().toISOString();
     const requestedSlug = (data.slug ?? '').trim();
 
-    const blog: any = {
+    const store: any = {
       uid: this.auth.authSignal()?.uid ?? undefined,
       name: data.name,
       description: data.description,
@@ -133,31 +133,31 @@ export class CmsService {
     };
 
     if (requestedSlug) {
-      blog.slug = this.slugify(requestedSlug);
+      store.slug = this.slugify(requestedSlug);
     }
 
-    const blogsCollection = collection(this.firestore, 'blogs');
-    const docRef = await addDoc(blogsCollection, blog as any);
-    const newBlog: Blog = { ...(blog as Blog), id: docRef.id, slug: blog.slug ?? docRef.id };
+    const blogsCollection = collection(this.firestore, 'stores');
+    const docRef = await addDoc(blogsCollection, store as any);
+    const newBlog: Store = { ...(store as Store), id: docRef.id, slug: store.slug ?? docRef.id };
 
     // set slug and default domain to a subdomain of the public root domain
     const defaultDomain = `${newBlog.slug}.${this.rootPublicDomain}`;
     await setDoc(docRef, { slug: newBlog.slug, domain: defaultDomain, template: this.defaultTemplate }, { merge: true });
     newBlog.domain = defaultDomain;
     newBlog.template = this.defaultTemplate;
-    this.activeBlogSignal.set(newBlog);
-    this.blogsSignal.set([...this.blogsSignal(), newBlog]);
+    this.activeStoreSignal.set(newBlog);
+    this.storesSignal.set([...this.storesSignal(), newBlog]);
 
     await this.createPage({
       title: 'About',
       slug: 'about',
-      excerpt: 'Learn more about this blog and the story behind the brand.',
+      excerpt: 'Learn more about this store and the story behind the brand.',
       content: `
 <h2>About</h2>
-<p>Welcome to ${newBlog.name}! This is your custom blog site powered by our CMS. Use this page to tell visitors who you are, what you do, and why your content matters.</p>
+<p>Welcome to ${newBlog.name}! This is your custom store site powered by our CMS. Use this page to tell visitors who you are, what you do, and why your content matters.</p>
 <p>Update the title and content as needed to match your brand and personality.</p>
 `,
-      blogId: newBlog.id
+      storeId: newBlog.id
     });
 
     await this.createPage({
@@ -169,61 +169,61 @@ export class CmsService {
 <p>We respect your privacy. This site collects only the information needed to deliver content and improve your experience.</p>
 <p>We do not sell your data, and we handle visitor information responsibly according to applicable privacy rules.</p>
 `,
-      blogId: newBlog.id
+      storeId: newBlog.id
     });
 
     return newBlog;
   }
 
-  async updateBlog(blogId: string, data: Partial<Pick<Blog, 'name' | 'slug' | 'description' | 'category' | 'domain' | 'ownerUid'>>): Promise<Blog | null> {
-    const blog = this.blogsSignal().find((item) => item.id === blogId);
-    if (!blog) return null;
+  async updateStore(storeId: string, data: Partial<Pick<Store, 'name' | 'slug' | 'description' | 'category' | 'domain' | 'ownerUid'>>): Promise<Store | null> {
+    const store = this.storesSignal().find((item) => item.id === storeId);
+    if (!store) return null;
 
-    const updatedBlog: Blog = {
-      ...blog,
+    const updatedBlog: Store = {
+      ...store,
       ...data,
-      slug: data.slug ? this.slugify(data.slug) : blog.slug,
+      slug: data.slug ? this.slugify(data.slug) : store.slug,
       theme: this.defaultTheme,
       template: this.defaultTemplate,
       updatedAt: new Date().toISOString()
     };
 
-    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+    const blogDoc = doc(this.firestore, `stores/${storeId}`);
     await updateDoc(blogDoc, updatedBlog as any);
 
-    const updatedBlogs = this.blogsSignal().map((item) => (item.id === blogId ? updatedBlog : item));
-    this.blogsSignal.set(updatedBlogs);
-    if (this.activeBlogSignal()?.id === blogId) {
-      this.activeBlogSignal.set(updatedBlog);
+    const updatedBlogs = this.storesSignal().map((item) => (item.id === storeId ? updatedBlog : item));
+    this.storesSignal.set(updatedBlogs);
+    if (this.activeStoreSignal()?.id === storeId) {
+      this.activeStoreSignal.set(updatedBlog);
     }
 
     return updatedBlog;
   }
 
-  async deleteBlog(blogId: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+  async deleteStore(storeId: string): Promise<void> {
+    const blogDoc = doc(this.firestore, `stores/${storeId}`);
     await deleteDoc(blogDoc);
 
-    const remaining = this.blogsSignal().filter((item) => item.id !== blogId);
-    this.blogsSignal.set(remaining);
-    if (this.activeBlogSignal()?.id === blogId) {
-      this.activeBlogSignal.set(null);
+    const remaining = this.storesSignal().filter((item) => item.id !== storeId);
+    this.storesSignal.set(remaining);
+    if (this.activeStoreSignal()?.id === storeId) {
+      this.activeStoreSignal.set(null);
     }
   }
 
-  async deleteBlogWithCascade(blogId: string): Promise<void> {
+  async deleteStoreWithCascade(storeId: string): Promise<void> {
     try {
-      // Delete all posts in the blog
+      // Delete all posts in the store
       const postsCollection = collection(this.firestore, 'posts');
-      const postsQuery = query(postsCollection, where('blogId', '==', blogId));
+      const postsQuery = query(postsCollection, where('storeId', '==', storeId));
       const postsSnapshot = await getDocs(postsQuery);
       for (const postDoc of postsSnapshot.docs) {
         await deleteDoc(postDoc.ref);
       }
 
-      // Delete all pages related to this blog
+      // Delete all pages related to this store
       const allPages = this.pagesSignal();
-      const blogPages = allPages.filter((p) => p.blogId === blogId);
+      const blogPages = allPages.filter((p) => p.storeId === storeId);
       for (const page of blogPages) {
         if (page.id) {
           const pageDocRef = doc(this.firestore, `pages/${page.id}`);
@@ -231,47 +231,47 @@ export class CmsService {
         }
       }
 
-      // Delete the blog itself
-      const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+      // Delete the store itself
+      const blogDoc = doc(this.firestore, `stores/${storeId}`);
       await deleteDoc(blogDoc);
 
       // Update signals
-      const remaining = this.blogsSignal().filter((item) => item.id !== blogId);
-      this.blogsSignal.set(remaining);
+      const remaining = this.storesSignal().filter((item) => item.id !== storeId);
+      this.storesSignal.set(remaining);
 
-      const remainingPosts = this.postsSignal().filter((item) => item.blogId !== blogId);
+      const remainingPosts = this.postsSignal().filter((item) => item.storeId !== storeId);
       this.postsSignal.set(remainingPosts);
 
-      const remainingPages = allPages.filter((p) => p.blogId !== blogId);
+      const remainingPages = allPages.filter((p) => p.storeId !== storeId);
       this.pagesSignal.set(remainingPages);
 
-      if (this.activeBlogSignal()?.id === blogId) {
-        this.activeBlogSignal.set(null);
+      if (this.activeStoreSignal()?.id === storeId) {
+        this.activeStoreSignal.set(null);
       }
     } catch (error) {
-      console.error('Error deleting blog with cascade:', error);
+      console.error('Error deleting store with cascade:', error);
       throw error;
     }
   }
 
-  setActiveBlogById(blogId: string): void {
-    const found = this.blogsSignal().find((b) => b.id === blogId);
+  setActiveBlogById(storeId: string): void {
+    const found = this.storesSignal().find((b) => b.id === storeId);
     if (found) {
-      this.activeBlogSignal.set(found);
+      this.activeStoreSignal.set(found);
       this.loadPostsForBlog(found.id);
-      this.ensureBlogHasTheme(found.id).catch(() => {});
+      this.ensureStoreHasTheme(found.id).catch(() => {});
       return;
     }
 
-    const blogDocRef = doc(this.firestore, `blogs/${blogId}`);
+    const blogDocRef = doc(this.firestore, `stores/${storeId}`);
     getDoc(blogDocRef)
       .then((snapshot) => {
         if (!snapshot.exists()) return;
         const data = snapshot.data() as Record<string, unknown>;
-        const blog: Blog = {
+        const store: Store = {
           id: snapshot.id,
           uid: data['uid'] ? String(data['uid']) : undefined,
-          name: String(data['name'] ?? 'Untitled blog'),
+          name: String(data['name'] ?? 'Untitled store'),
           slug: data['slug'] ? String(data['slug']) : this.slugify(String(data['name'] ?? '')),
           description: data['description'] ? String(data['description']) : undefined,
           category: data['category'] ? String(data['category']) : undefined,
@@ -282,24 +282,24 @@ export class CmsService {
           template: data['template'] ? String(data['template']) : this.defaultTemplate,
           domain: data['domain'] ? String(data['domain']) : undefined,
           templateConfig: data['templateConfig'] ? (data['templateConfig'] as TemplateConfig) : undefined
-        } as Blog;
+        } as Store;
 
-        this.activeBlogSignal.set(blog);
-        this.blogsSignal.set([...this.blogsSignal(), blog]);
-        this.loadPostsForBlog(blog.id);
-        this.ensureBlogHasTheme(blog.id).catch(() => {});
+        this.activeStoreSignal.set(store);
+        this.storesSignal.set([...this.storesSignal(), store]);
+        this.loadPostsForBlog(store.id);
+        this.ensureStoreHasTheme(store.id).catch(() => {});
       })
       .catch(() => {});
   }
 
-  private async loadPostsForBlog(blogId: string): Promise<void> {
+  private async loadPostsForBlog(storeId: string): Promise<void> {
     const postsCollection = collection(this.firestore, 'posts');
-    const postsQuery = query(postsCollection, where('blogId', '==', blogId));
+    const postsQuery = query(postsCollection, where('storeId', '==', storeId));
     collectionData(postsQuery, { idField: 'id' })
       .pipe(
         map((items: Array<Record<string, unknown>>) =>
           items
-            .map((item) => ({ ...this.normalizePost(item), blogId } as Post))
+            .map((item) => ({ ...this.normalizePost(item), storeId } as Post))
             .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? '').getTime() - new Date(a.updatedAt ?? a.createdAt ?? '').getTime())
         ),
         catchError(() => of([] as Post[]))
@@ -308,22 +308,22 @@ export class CmsService {
   }
 
   /**
-   * Fetch posts for a blog directly from Firestore (no Storage hydration).
+   * Fetch posts for a store directly from Firestore (no Storage hydration).
    * If `limitCount` is provided and > 0, the query will be limited.
    */
-  async fetchPostsForBlog(blogId: string, limitCount?: number): Promise<Post[]> {
+  async fetchPostsForBlog(storeId: string, limitCount?: number): Promise<Post[]> {
     const postsCollection = collection(this.firestore, 'posts');
-    const q = query(postsCollection, where('blogId', '==', blogId));
+    const q = query(postsCollection, where('storeId', '==', storeId));
 
     const snapshot = await getDocs(q);
     if (snapshot.empty) return [];
 
     const posts = snapshot.docs
-      .map((docSnap) => ({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), blogId } as Post))
+      .map((docSnap) => ({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), storeId } as Post))
       .sort((a, b) => new Date(b.updatedAt ?? b.createdAt ?? '').getTime() - new Date(a.updatedAt ?? a.createdAt ?? '').getTime());
 
     const results = limitCount && limitCount > 0 ? posts.slice(0, limitCount) : posts;
-    const others = this.postsSignal().filter((p) => p.blogId !== blogId);
+    const others = this.postsSignal().filter((p) => p.storeId !== storeId);
     this.postsSignal.set([...results, ...others]);
     return results;
   }
@@ -331,22 +331,22 @@ export class CmsService {
   /**
    * Fetch a post document by id from Firestore (no Storage hydration).
    */
-  async fetchPostDocById(blogId: string, postId: string): Promise<Post | null> {
+  async fetchPostDocById(storeId: string, postId: string): Promise<Post | null> {
     const postDoc = doc(this.firestore, `posts/${postId}`);
     const snapshot = await getDoc(postDoc);
     if (!snapshot.exists()) return null;
 
-    const post = { ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), blogId } as Post;
-    if (post.blogId !== blogId) return null;
+    const post = { ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), storeId } as Post;
+    if (post.storeId !== storeId) return null;
     // update in-memory signal but do not hydrate content from storage
     this.postsSignal.set([post, ...this.postsSignal().filter((p) => p.id !== post.id)]);
     return post;
   }
 
-  async createPost(blogId: string, data: { title: string; excerpt?: string; content?: string; category?: string; status?: 'draft' | 'published' }): Promise<Post> {
+  async createPost(storeId: string, data: { title: string; excerpt?: string; content?: string; category?: string; status?: 'draft' | 'published' }): Promise<Post> {
     const now = new Date().toISOString();
     const status = data.status ?? 'draft';
-    await this.ensureBlogHasTheme(blogId);
+    await this.ensureStoreHasTheme(storeId);
 
     const postMeta: any = {
       uid: this.auth.authSignal()?.uid ?? undefined,
@@ -354,7 +354,7 @@ export class CmsService {
       slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       excerpt: data.excerpt ?? '',
       category: data.category ?? 'Uncategorized',
-      blogId,
+      storeId,
       status,
       views: 0,
       createdAt: now,
@@ -382,8 +382,8 @@ export class CmsService {
     return newPost;
   }
 
-  async updatePost(blogId: string, postId: string, data: Partial<Pick<Post, 'title' | 'excerpt' | 'content' | 'category' | 'status' | 'publishedAt'>>): Promise<Post | null> {
-    const post = this.postsSignal().find((item) => item.id === postId && item.blogId === blogId);
+  async updatePost(storeId: string, postId: string, data: Partial<Pick<Post, 'title' | 'excerpt' | 'content' | 'category' | 'status' | 'publishedAt'>>): Promise<Post | null> {
+    const post = this.postsSignal().find((item) => item.id === postId && item.storeId === storeId);
     if (!post) return null;
 
     const now = new Date().toISOString();
@@ -435,14 +435,14 @@ export class CmsService {
     return updated;
   }
 
-  async deletePost(blogId: string, postId: string): Promise<void> {
+  async deletePost(storeId: string, postId: string): Promise<void> {
     const postDoc = doc(this.firestore, `posts/${postId}`);
     await deleteDoc(postDoc);
     this.postsSignal.set(this.postsSignal().filter((item) => item.id !== postId));
   }
 
-  async publishPost(blogId: string, postId: string): Promise<Post | null> {
-    const post = this.postsSignal().find((item) => item.id === postId && item.blogId === blogId);
+  async publishPost(storeId: string, postId: string): Promise<Post | null> {
+    const post = this.postsSignal().find((item) => item.id === postId && item.storeId === storeId);
     if (!post) return null;
 
     const publishedAt = new Date().toISOString();
@@ -455,8 +455,8 @@ export class CmsService {
     return updated;
   }
 
-  async loadPreviewPost(blogId: string, postId: string): Promise<Post | null> {
-    const existing = this.postsSignal().find((item) => item.id === postId && item.blogId === blogId);
+  async loadPreviewPost(storeId: string, postId: string): Promise<Post | null> {
+    const existing = this.postsSignal().find((item) => item.id === postId && item.storeId === storeId);
     if (existing) {
       const hydrated = await this.hydratePostContent(existing);
       this.previewSignal.set(hydrated);
@@ -468,18 +468,18 @@ export class CmsService {
     if (!snapshot.exists()) return null;
 
     const data = snapshot.data() as Record<string, unknown>;
-    const post = await this.hydratePostContent({ ...this.normalizePost({ ...data, id: snapshot.id }), blogId });
-    if (post.blogId !== blogId) return null;
+    const post = await this.hydratePostContent({ ...this.normalizePost({ ...data, id: snapshot.id }), storeId });
+    if (post.storeId !== storeId) return null;
     this.previewSignal.set(post);
     return post;
   }
 
-  getPostById(blogId: string, postId: string): Post | undefined {
-    return this.postsSignal().find((item) => item.id === postId && item.blogId === blogId);
+  getPostById(storeId: string, postId: string): Post | undefined {
+    return this.postsSignal().find((item) => item.id === postId && item.storeId === storeId);
   }
 
-  async loadPostById(blogId: string, postId: string): Promise<Post | null> {
-    const existing = this.getPostById(blogId, postId);
+  async loadPostById(storeId: string, postId: string): Promise<Post | null> {
+    const existing = this.getPostById(storeId, postId);
     if (existing) {
       const hydrated = await this.hydratePostContent(existing);
       this.postsSignal.set(this.postsSignal().map((item) => (item.id === hydrated.id ? hydrated : item)));
@@ -490,14 +490,14 @@ export class CmsService {
     const snapshot = await getDoc(postDoc);
     if (!snapshot.exists()) return null;
 
-    const post = await this.hydratePostContent({ ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), blogId });
-    if (post.blogId !== blogId) return null;
+    const post = await this.hydratePostContent({ ...this.normalizePost({ ...snapshot.data(), id: snapshot.id }), storeId });
+    if (post.storeId !== storeId) return null;
     this.postsSignal.set([post, ...this.postsSignal()]);
     return post;
   }
 
-  async loadPostBySlug(blogId: string, slug: string): Promise<Post | null> {
-    const existing = this.findPostBySlug(blogId, slug);
+  async loadPostBySlug(storeId: string, slug: string): Promise<Post | null> {
+    const existing = this.findPostBySlug(storeId, slug);
     if (existing) {
       const hydrated = await this.hydratePostContent(existing);
       this.postsSignal.set(this.postsSignal().map((item) => (item.id === hydrated.id ? hydrated : item)));
@@ -509,40 +509,40 @@ export class CmsService {
     const snapshot = await getDocs(slugQuery);
     if (snapshot.empty) return null;
 
-    const docSnap = snapshot.docs.find((s) => (s.data() as Record<string, unknown>)['blogId'] === blogId);
+    const docSnap = snapshot.docs.find((s) => (s.data() as Record<string, unknown>)['storeId'] === storeId);
     if (!docSnap) return null;
 
-    const post = await this.hydratePostContent({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), blogId });
+    const post = await this.hydratePostContent({ ...this.normalizePost({ ...docSnap.data(), id: docSnap.id }), storeId });
     this.postsSignal.set([post, ...this.postsSignal()]);
     return post;
   }
 
-  findPostBySlug(blogId: string, slug: string): Post | undefined {
-    return this.postsSignal().find((item) => item.blogId === blogId && item.slug === slug);
+  findPostBySlug(storeId: string, slug: string): Post | undefined {
+    return this.postsSignal().find((item) => item.storeId === storeId && item.slug === slug);
   }
 
-  findBlogByHostSlug(hostSlug: string): Blog | undefined {
+  findStoreByHostSlug(hostSlug: string): Store | undefined {
     const normalized = hostSlug.toLowerCase();
-    const byDomain = this.blogsSignal().find((b) => b.domain && b.domain.replace(/^(https?:\/\/)?/, '').toLowerCase() === normalized);
+    const byDomain = this.storesSignal().find((b) => b.domain && b.domain.replace(/^(https?:\/\/)?/, '').toLowerCase() === normalized);
     if (byDomain) return byDomain;
 
-    const byId = this.blogsSignal().find((b) => b.id === hostSlug || b.id.toLowerCase() === normalized);
+    const byId = this.storesSignal().find((b) => b.id === hostSlug || b.id.toLowerCase() === normalized);
     if (byId) return byId;
 
-    const bySlug = this.blogsSignal().find((b) => (b.slug ? b.slug.toLowerCase() === normalized : false));
+    const bySlug = this.storesSignal().find((b) => (b.slug ? b.slug.toLowerCase() === normalized : false));
     if (bySlug) return bySlug;
 
-    const byName = this.blogsSignal().find((b) => this.slugify(b.name || '') === normalized);
+    const byName = this.storesSignal().find((b) => this.slugify(b.name || '') === normalized);
     if (byName) return byName;
 
     return undefined;
   }
 
-  findBlogByHostName(hostname: string): Blog | undefined {
+  findStoreByHostName(hostname: string): Store | undefined {
     const normalized = hostname.toLowerCase().trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '');
 
     // Exact domain match first for configured custom or generated domains.
-    const byDomain = this.blogsSignal().find(
+    const byDomain = this.storesSignal().find(
       (b) => b.domain && b.domain.trim().replace(/^(https?:\/\/)?/, '').replace(/\/$/, '').toLowerCase() === normalized
     );
     if (byDomain) return byDomain;
@@ -568,7 +568,7 @@ export class CmsService {
       return undefined;
     }
 
-    return this.findBlogByHostSlug(slug);
+    return this.findStoreByHostSlug(slug);
   }
 
   private normalizeHost(host: string): string {
@@ -620,13 +620,13 @@ export class CmsService {
     return { ...post, content };
   }
 
-  private async ensureBlogHasTheme(blogId: string): Promise<void> {
-    const blog = this.blogsSignal().find((item) => item.id === blogId);
-    if (!blog || blog.theme) {
+  private async ensureStoreHasTheme(storeId: string): Promise<void> {
+    const store = this.storesSignal().find((item) => item.id === storeId);
+    if (!store || store.theme) {
       return;
     }
 
-    await this.setBlogTheme(blogId, this.defaultTheme);
+    await this.setStoreTheme(storeId, this.defaultTheme);
   }
 
   private isLocalDevelopmentHost(): boolean {
@@ -647,9 +647,9 @@ export class CmsService {
     return window.location.hostname.toLowerCase().trim();
   }
 
-  getPublicHostForBlog(blog: Blog): string {
-    if (blog.domain) {
-      let host = this.normalizeHost(blog.domain);
+  getPublicHostForStore(store: Store): string {
+    if (store.domain) {
+      let host = this.normalizeHost(store.domain);
       if (!host) {
         return window.location.host;
       }
@@ -661,40 +661,40 @@ export class CmsService {
       return host;
     }
 
-    if (blog.slug) {
-      return `${this.normalizeHost(blog.slug)}.${this.rootPublicDomain}`;
+    if (store.slug) {
+      return `${this.normalizeHost(store.slug)}.${this.rootPublicDomain}`;
     }
 
     return window.location.host;
   }
 
-  private buildPublicUrl(blog: Blog, path: string): string {
-    const host = this.getPublicHostForBlog(blog);
+  private buildPublicUrl(store: Store, path: string): string {
+    const host = this.getPublicHostForStore(store);
     return `https://${host}${path}`;
   }
 
-  getPublicSiteUrl(blog: Blog): string {
-    if (!blog) {
+  getPublicSiteUrl(store: Store): string {
+    if (!store) {
       return this.getCurrentOrigin();
     }
 
-    if (this.isLocalDevelopmentHost() && !blog.domain) {
-      return this.getLocalPreviewUrl(`/site/${blog.id}`);
+    if (this.isLocalDevelopmentHost() && !store.domain) {
+      return this.getLocalPreviewUrl(`/site/${store.id}`);
     }
 
-    return this.buildPublicUrl(blog, '');
+    return this.buildPublicUrl(store, '');
   }
 
-  getPublicPostUrl(blog: Blog, postSlug: string): string {
-    if (!blog) {
+  getPublicPostUrl(store: Store, postSlug: string): string {
+    if (!store) {
       return this.getCurrentOrigin();
     }
 
-    if (this.isLocalDevelopmentHost() && !blog.domain) {
-      return this.getLocalPreviewUrl(`/site/${blog.id}/${postSlug}`);
+    if (this.isLocalDevelopmentHost() && !store.domain) {
+      return this.getLocalPreviewUrl(`/site/${store.id}/${postSlug}`);
     }
 
-    return this.buildPublicUrl(blog, `/${postSlug}`);
+    return this.buildPublicUrl(store, `/${postSlug}`);
   }
 
   getThemeCssUrl(themeId?: string): string {
@@ -717,7 +717,7 @@ export class CmsService {
     return page;
   }
 
-  async createPage(data: { title: string; slug?: string; excerpt?: string; content?: string; blogId?: string }): Promise<Page> {
+  async createPage(data: { title: string; slug?: string; excerpt?: string; content?: string; storeId?: string }): Promise<Page> {
     const now = new Date().toISOString();
     const page: Omit<Page, 'id'> = {
       uid: this.auth.authSignal()?.uid ?? undefined,
@@ -725,7 +725,7 @@ export class CmsService {
       slug: data.slug ? this.slugify(data.slug) : this.slugify(data.title),
       excerpt: data.excerpt ?? '',
       content: data.content ?? '',
-      blogId: data.blogId,
+      storeId: data.storeId,
       createdAt: now,
       updatedAt: now
     };
@@ -796,28 +796,28 @@ export class CmsService {
     return this.pagesSignal().find((item) => item.slug === slug);
   }
 
-  async setBlogTheme(blogId: string, theme: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+  async setStoreTheme(storeId: string, theme: string): Promise<void> {
+    const blogDoc = doc(this.firestore, `stores/${storeId}`);
     await setDoc(blogDoc, { theme }, { merge: true });
 
-    const current = this.activeBlogSignal();
-    if (current && current.id === blogId) {
-      this.activeBlogSignal.set({ ...current, theme });
+    const current = this.activeStoreSignal();
+    if (current && current.id === storeId) {
+      this.activeStoreSignal.set({ ...current, theme });
     }
   }
 
-  async setBlogTemplate(blogId: string, template: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+  async setStoreTemplate(storeId: string, template: string): Promise<void> {
+    const blogDoc = doc(this.firestore, `stores/${storeId}`);
     await setDoc(blogDoc, { template }, { merge: true });
 
-    const current = this.activeBlogSignal();
-    if (current && current.id === blogId) {
-      this.activeBlogSignal.set({ ...current, template });
+    const current = this.activeStoreSignal();
+    if (current && current.id === storeId) {
+      this.activeStoreSignal.set({ ...current, template });
     }
   }
 
-  getBlogTemplateId(blog?: Blog): string {
-    return blog?.template || this.defaultTemplate;
+  getStoreTemplateId(store?: Store): string {
+    return store?.template || this.defaultTemplate;
   }
 
   getAvailableThemes(): Array<{ id: string; label: string }> {
@@ -833,22 +833,22 @@ export class CmsService {
     return [{ id: 'default', label: 'Default' }];
   }
 
-  async setBlogDomain(blogId: string, domain: string): Promise<void> {
-    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+  async setStoreDomain(storeId: string, domain: string): Promise<void> {
+    const blogDoc = doc(this.firestore, `stores/${storeId}`);
     await setDoc(blogDoc, { domain }, { merge: true });
 
-    const current = this.activeBlogSignal();
-    if (current && current.id === blogId) {
-      this.activeBlogSignal.set({ ...current, domain });
+    const current = this.activeStoreSignal();
+    if (current && current.id === storeId) {
+      this.activeStoreSignal.set({ ...current, domain });
     }
   }
 
-  async getTemplateConfig(blogId: string): Promise<TemplateConfig | null> {
-    const blog = this.blogsSignal().find((b) => b.id === blogId);
-    return blog?.templateConfig || null;
+  async getTemplateConfig(storeId: string): Promise<TemplateConfig | null> {
+    const store = this.storesSignal().find((b) => b.id === storeId);
+    return store?.templateConfig || null;
   }
 
-  async setTemplateConfig(blogId: string, config: TemplateConfig): Promise<void> {
+  async setTemplateConfig(storeId: string, config: TemplateConfig): Promise<void> {
     const normalized: TemplateConfig = {
       topNavPageIds: config?.topNavPageIds ?? [],
       secondaryNavItems: (config?.secondaryNavItems ?? []).map((item) => {
@@ -864,45 +864,45 @@ export class CmsService {
       logoColor: config?.logoColor ?? null
     } as TemplateConfig;
 
-    const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+    const blogDoc = doc(this.firestore, `stores/${storeId}`);
     await setDoc(blogDoc, { templateConfig: normalized }, { merge: true });
 
-    const current = this.activeBlogSignal();
-    if (current?.id === blogId) {
-      this.activeBlogSignal.set({ ...current, templateConfig: normalized });
+    const current = this.activeStoreSignal();
+    if (current?.id === storeId) {
+      this.activeStoreSignal.set({ ...current, templateConfig: normalized });
     }
 
-    const blogs = this.blogsSignal();
-    const updated = blogs.map((b) => (b.id === blogId ? { ...b, templateConfig: normalized } : b));
-    this.blogsSignal.set(updated);
+    const stores = this.storesSignal();
+    const updated = stores.map((b) => (b.id === storeId ? { ...b, templateConfig: normalized } : b));
+    this.storesSignal.set(updated);
   }
 
-  async addSecondaryNavItem(blogId: string, item: NavigationItem): Promise<void> {
-    const config = await this.getTemplateConfig(blogId);
+  async addSecondaryNavItem(storeId: string, item: NavigationItem): Promise<void> {
+    const config = await this.getTemplateConfig(storeId);
     const secondaryNavItems = config?.secondaryNavItems || [];
     const maxOrder = secondaryNavItems.length > 0 ? Math.max(...secondaryNavItems.map((i) => i.order)) : 0;
     const newItem = { ...item, order: item.order || maxOrder + 1 };
-    await this.setTemplateConfig(blogId, {
+    await this.setTemplateConfig(storeId, {
       ...config,
       secondaryNavItems: [...secondaryNavItems, newItem]
     });
   }
 
-  async updateSecondaryNavItem(blogId: string, itemId: string, updated: Partial<NavigationItem>): Promise<void> {
-    const config = await this.getTemplateConfig(blogId);
+  async updateSecondaryNavItem(storeId: string, itemId: string, updated: Partial<NavigationItem>): Promise<void> {
+    const config = await this.getTemplateConfig(storeId);
     const secondaryNavItems = config?.secondaryNavItems || [];
     const newItems = secondaryNavItems.map((i) => (i.id === itemId ? { ...i, ...updated } : i));
-    await this.setTemplateConfig(blogId, {
+    await this.setTemplateConfig(storeId, {
       ...config,
       secondaryNavItems: newItems
     });
   }
 
-  async deleteSecondaryNavItem(blogId: string, itemId: string): Promise<void> {
-    const config = await this.getTemplateConfig(blogId);
+  async deleteSecondaryNavItem(storeId: string, itemId: string): Promise<void> {
+    const config = await this.getTemplateConfig(storeId);
     const secondaryNavItems = config?.secondaryNavItems || [];
     const newItems = secondaryNavItems.filter((i) => i.id !== itemId);
-    await this.setTemplateConfig(blogId, {
+    await this.setTemplateConfig(storeId, {
       ...config,
       secondaryNavItems: newItems
     });
@@ -1116,7 +1116,7 @@ export class CmsService {
       createdAt: String(item['createdAt'] ?? new Date().toISOString()),
       publishedAt: item['publishedAt'] ? String(item['publishedAt']) : undefined,
       featuredImage: item['featuredImage'] ? String(item['featuredImage']) : undefined,
-      blogId: item['blogId'] ? String(item['blogId']) : undefined
+      storeId: item['storeId'] ? String(item['storeId']) : undefined
     };
   }
 
@@ -1129,25 +1129,25 @@ export class CmsService {
       excerpt: item['excerpt'] ? String(item['excerpt']) : undefined,
       content: String(item['content'] ?? ''),
       contentUrl: item['contentUrl'] ? String(item['contentUrl']) : undefined,
-      blogId: item['blogId'] ? String(item['blogId']) : undefined,
+      storeId: item['storeId'] ? String(item['storeId']) : undefined,
       createdAt: item['createdAt'] ? String(item['createdAt']) : undefined,
       updatedAt: item['updatedAt'] ? String(item['updatedAt']) : undefined
     };
   }
 
-  async saveBlogThemeSettings(blogId: string, themeVars: any): Promise<void> {
+  async saveBlogThemeSettings(storeId: string, themeVars: any): Promise<void> {
     try {
-      const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+      const blogDoc = doc(this.firestore, `stores/${storeId}`);
       await setDoc(blogDoc, { themeSettings: themeVars }, { merge: true });
     } catch (error) {
-      console.error('Error saving blog theme settings:', error);
+      console.error('Error saving store theme settings:', error);
       throw error;
     }
   }
 
-  async loadBlogThemeSettings(blogId: string): Promise<Record<string, unknown>> {
+  async loadBlogThemeSettings(storeId: string): Promise<Record<string, unknown>> {
     try {
-      const blogDoc = doc(this.firestore, `blogs/${blogId}`);
+      const blogDoc = doc(this.firestore, `stores/${storeId}`);
       const snapshot = await getDoc(blogDoc);
       if (snapshot.exists()) {
         const data = snapshot.data();
@@ -1155,7 +1155,7 @@ export class CmsService {
       }
       return {};
     } catch (error) {
-      console.error('Error loading blog theme settings:', error);
+      console.error('Error loading store theme settings:', error);
       return {};
     }
   }

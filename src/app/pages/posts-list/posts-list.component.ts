@@ -16,19 +16,19 @@ import { CmsService } from '../../services/cms.service';
         </div>
       </div>
 
-      <div *ngIf="!cms.activeBlogSignal()" class="empty-state">
-        <h3>No blog selected</h3>
-        <p>Please create a blog first.</p>
-        <a routerLink="/dashboard" class="btn">Create blog</a>
+      <div *ngIf="!cms.activeStoreSignal()" class="empty-state">
+        <h3>No store selected</h3>
+        <p>Please create a store first.</p>
+        <a routerLink="/dashboard" class="btn">Create store</a>
       </div>
 
-      <div *ngIf="cms.activeBlogSignal() && cms.filteredPostsSignal().length === 0" class="empty-state">
+      <div *ngIf="cms.activeStoreSignal() && cms.filteredPostsSignal().length === 0" class="empty-state">
         <h3>No posts yet</h3>
-        <p>Create your first post for <strong>{{ cms.activeBlogSignal()?.name }}</strong>.</p>
+        <p>Create your first post for <strong>{{ cms.activeStoreSignal()?.name }}</strong>.</p>
         <a routerLink="/posts/new" class="btn">Create post</a>
       </div>
 
-      <ul *ngIf="cms.activeBlogSignal() && cms.filteredPostsSignal().length > 0" class="posts-list">
+      <ul *ngIf="cms.activeStoreSignal() && cms.filteredPostsSignal().length > 0" class="posts-list">
         <li *ngFor="let p of cms.filteredPostsSignal()">
           <h4>{{ p.title }}</h4>
           <p class="muted">{{ p.excerpt }}</p>
@@ -48,15 +48,15 @@ export class PostsListComponent {
   private router = inject(Router);
 
   async ngOnInit(): Promise<void> {
-    const blog = this.cms.activeBlogSignal();
-    if (blog) {
-      await this.cms.fetchPostsForBlog(blog.id);
+    const store = this.cms.activeStoreSignal();
+    if (store) {
+      await this.cms.fetchPostsForBlog(store.id);
     }
   }
 
   newPost() {
-    const blog = this.cms.activeBlogSignal();
-    if (!blog) {
+    const store = this.cms.activeStoreSignal();
+    if (!store) {
       this.router.navigate(['/onboarding']);
       return;
     }

@@ -11,11 +11,11 @@ import { CmsService } from '../../services/cms.service';
     <section class="public-host" *ngIf="loaded; else loading">
       <link rel="stylesheet" [attr.href]="themeCssUrl" *ngIf="themeCssUrl">
 
-      <div *ngIf="post && blog; else missing">
+      <div *ngIf="post && store; else missing">
         <header class="site-header">
           <div>
-            <p class="brand">{{ blog.name }}</p>
-            <p class="tagline">{{ blog.description || 'A simple public blog powered by your CMS.' }}</p>
+            <p class="brand">{{ store.name }}</p>
+            <p class="tagline">{{ store.description || 'A simple public store powered by your CMS.' }}</p>
           </div>
           <nav class="site-nav">
             <a [href]="homeLink">Home</a>
@@ -45,7 +45,7 @@ export class PublicHostComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly cms = inject(CmsService);
   post: any = null;
-  blog: any = null;
+  store: any = null;
   themeCssUrl = '';
   homeLink = '/';
   loaded = false;
@@ -54,7 +54,7 @@ export class PublicHostComponent implements OnInit {
     const params = this.route.snapshot.paramMap;
     const routeHostSlug = params.get('hostSlug');
     const slug = params.get('slug');
-    const hostnameBlog = this.cms.hostBlogSignal() ?? this.cms.findBlogByHostName(window.location.hostname);
+    const hostnameBlog = this.cms.hostStoreSignal() ?? this.cms.findStoreByHostName(window.location.hostname);
     const hostSlug = routeHostSlug || hostnameBlog?.id;
 
     if (!hostSlug || !slug) {
@@ -62,25 +62,25 @@ export class PublicHostComponent implements OnInit {
       return;
     }
 
-    const blog = routeHostSlug ? this.cms.findBlogByHostSlug(hostSlug) : hostnameBlog;
-    if (!blog) {
+    const store = routeHostSlug ? this.cms.findStoreByHostSlug(hostSlug) : hostnameBlog;
+    if (!store) {
       this.loaded = true;
       return;
     }
 
-    this.blog = blog;
-    this.themeCssUrl = this.cms.getThemeCssUrl(blog.theme);
-    this.homeLink = this.blogHostHomeLink(blog);
+    this.store = store;
+    this.themeCssUrl = this.cms.getThemeCssUrl(store.theme);
+    this.homeLink = this.blogHostHomeLink(store);
 
     // find published post by slug
-    let post = this.cms.findPostBySlug(blog.id, slug) ?? null;
+    let post = this.cms.findPostBySlug(store.id, slug) ?? null;
     if (!post) {
-      post = await this.cms.loadPostBySlug(blog.id, slug);
+      post = await this.cms.loadPostBySlug(store.id, slug);
     }
 
     if (post) {
       // ensure content is hydrated from Storage
-      const hydrated = await this.cms.loadPostById(blog.id, post.id);
+      const hydrated = await this.cms.loadPostById(store.id, post.id);
       this.post = hydrated ?? post;
       this.loaded = true;
       return;
@@ -89,10 +89,10 @@ export class PublicHostComponent implements OnInit {
     this.loaded = true;
   }
 
-  private blogHostHomeLink(blog: any): string {
-    const host = this.cms.getPublicHostForBlog(blog);
+  private blogHostHomeLink(store: any): string {
+    const host = this.cms.getPublicHostForStore(store);
     if (!host) {
-      return `/site/${blog.id}`;
+      return `/site/${store.id}`;
     }
 
     return `https://${host}`;

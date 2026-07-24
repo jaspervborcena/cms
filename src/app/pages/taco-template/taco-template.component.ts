@@ -1,7 +1,7 @@
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { Blog, Page, Post } from '../../models/cms.models';
+import { Store, Page, Post } from '../../models/cms.models';
 import { CmsService } from '../../services/cms.service';
 
 @Component({
@@ -14,7 +14,7 @@ import { CmsService } from '../../services/cms.service';
 
       <!-- TOP NAVIGATION BAR -->
       <nav class="top-nav">
-        <a [routerLink]="['/site', blog?.id]" class="nav-link">Home</a>
+        <a [routerLink]="['/site', store?.id]" class="nav-link">Home</a>
         <ng-container *ngFor="let page of primaryMenuPages">
           <a [routerLink]="['/pages', page.slug]" class="nav-link">{{ page.title | uppercase }}</a>
         </ng-container>
@@ -24,14 +24,14 @@ import { CmsService } from '../../services/cms.service';
       <!-- LOGO SECTION -->
       <div class="logo-section">
         <div class="logo-container">
-          <p class="logo-text">{{ blog?.name || 'Blog' }}</p>
+          <p class="logo-text">{{ store?.name || 'Store' }}</p>
         </div>
       </div>
 
       <!-- SECONDARY NAVIGATION BAR -->
       <nav class="secondary-nav">
         <a href="#" class="nav-icon">⌂</a>
-        <a href="#" class="nav-item">{{ blog?.category || 'EXPERIENCE' }}</a>
+        <a href="#" class="nav-item">{{ store?.category || 'EXPERIENCE' }}</a>
         <a href="#" class="nav-item">Trending</a>
         <a href="#" class="nav-item">Foods</a>
         <a href="#" class="nav-item">Gallery</a>
@@ -57,7 +57,7 @@ import { CmsService } from '../../services/cms.service';
                 <span class="rss-icon">📡</span>
                 <h2>Recent Posts</h2>
               </div>
-              <a [routerLink]="['/site', blog?.id]" class="view-more">View More</a>
+              <a [routerLink]="['/site', store?.id]" class="view-more">View More</a>
             </div>
 
             <!-- FEATURED POST WITH IMAGE -->
@@ -70,7 +70,7 @@ import { CmsService } from '../../services/cms.service';
                   <span class="date">{{ featuredPost.publishedAt | date: 'y MMMM d' }}</span>
                 </p>
                 <p class="excerpt">{{ featuredPost.excerpt }}</p>
-                <a [routerLink]="['/site', blog?.id, featuredPost.slug]" class="read-more-btn">Read More »</a>
+                <a [routerLink]="['/site', store?.id, featuredPost.slug]" class="read-more-btn">Read More »</a>
               </div>
             </article>
 
@@ -99,7 +99,7 @@ import { CmsService } from '../../services/cms.service';
               <h3 class="widget-title">Recent Posts</h3>
               <ul class="widget-list">
                 <li *ngFor="let post of otherPosts">
-                  <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
+                  <a [routerLink]="['/site', store?.id, post.slug]">{{ post.title }}</a>
                 </li>
                 <li *ngIf="otherPosts.length === 0" class="empty">No posts yet.</li>
               </ul>
@@ -115,7 +115,7 @@ import { CmsService } from '../../services/cms.service';
             <h4>Featured Posts</h4>
             <ul>
               <li *ngFor="let post of publishedPosts.slice(0, 3)">
-                <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
+                <a [routerLink]="['/site', store?.id, post.slug]">{{ post.title }}</a>
               </li>
             </ul>
           </div>
@@ -123,7 +123,7 @@ import { CmsService } from '../../services/cms.service';
             <h4>Recent Posts</h4>
             <ul>
               <li *ngFor="let post of publishedPosts.slice(0, 3)">
-                <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
+                <a [routerLink]="['/site', store?.id, post.slug]">{{ post.title }}</a>
               </li>
             </ul>
           </div>
@@ -131,13 +131,13 @@ import { CmsService } from '../../services/cms.service';
             <h4>Recent in News</h4>
             <ul>
               <li *ngFor="let post of publishedPosts.slice(0, 3)">
-                <a [routerLink]="['/site', blog?.id, post.slug]">{{ post.title }}</a>
+                <a [routerLink]="['/site', store?.id, post.slug]">{{ post.title }}</a>
               </li>
             </ul>
           </div>
         </section>
         <div class="footer-bottom">
-          <p>Copyright © 2026 {{ blog?.name || 'Your Blog' }}</p>
+          <p>Copyright © 2026 {{ store?.name || 'Your Store' }}</p>
           <div class="footer-social">
             <a href="https://facebook.com" target="_blank">f</a>
             <a href="#" target="_blank">↑</a>
@@ -223,7 +223,7 @@ import { CmsService } from '../../services/cms.service';
 export class TacoTemplateComponent {
   private readonly cms = inject(CmsService);
 
-  @Input() blog: Blog | null = null;
+  @Input() store: Store | null = null;
   @Input() pages: Page[] = [];
   @Input() publishedPosts: Post[] = [];
   @Input() themeCssUrl = '';

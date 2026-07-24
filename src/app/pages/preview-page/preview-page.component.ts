@@ -10,9 +10,9 @@ import { Page, Post } from '../../models/cms.models';
   standalone: true,
   imports: [CommonModule, DefaultSiteTemplateComponent],
   template: `
-    <ng-container *ngIf="loaded && blog; else loading">
+    <ng-container *ngIf="loaded && store; else loading">
       <app-default-site-template
-        [blog]="blog"
+        [store]="store"
         [pages]="pages"
         [publishedPosts]="publishedPosts"
         [previewPost]="postSignal()"
@@ -60,7 +60,7 @@ export class PreviewPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   readonly service = inject(CmsService);
   readonly postSignal = signal<Post | null>(null);
-  blog: any = null;
+  store: any = null;
   themeCssUrl = '';
   pages: Page[] = [];
   publishedPosts: Post[] = [];
@@ -68,36 +68,36 @@ export class PreviewPageComponent implements OnInit {
 
   ngOnInit(): void {
     const params = this.route.snapshot.paramMap;
-    const blogId = params.get('blogId');
+    const storeId = params.get('storeId');
     const postId = params.get('postId');
 
-    if (!blogId || !postId) {
+    if (!storeId || !postId) {
       this.loaded = true;
       return;
     }
 
-    this.service.setActiveBlogById(blogId);
+    this.service.setActiveBlogById(storeId);
 
     effect(() => {
-      this.blog = this.service.blogsSignal().find((b) => b.id === blogId) ?? null;
-      this.themeCssUrl = this.service.getThemeCssUrl(this.blog?.theme);
-      this.pages = this.service.pagesSignal().filter((page) => page.blogId === blogId);
-      this.publishedPosts = this.service.postsSignal().filter((post) => post.blogId === blogId && post.status === 'published');
+      this.store = this.service.storesSignal().find((b) => b.id === storeId) ?? null;
+      this.themeCssUrl = this.service.getThemeCssUrl(this.store?.theme);
+      this.pages = this.service.pagesSignal().filter((page) => page.storeId === storeId);
+      this.publishedPosts = this.service.postsSignal().filter((post) => post.storeId === storeId && post.status === 'published');
 
-      if (this.blog && this.postSignal()) {
+      if (this.store && this.postSignal()) {
         this.loaded = true;
       }
     });
 
-    this.service.loadPreviewPost(blogId, postId).then(async (loaded) => {
+    this.service.loadPreviewPost(storeId, postId).then(async (loaded) => {
       if (!loaded) {
         this.loaded = true;
         return;
       }
 
-      const hydrated = await this.service.loadPostById(blogId, loaded.id);
+      const hydrated = await this.service.loadPostById(storeId, loaded.id);
       this.postSignal.set(hydrated ?? loaded);
-      this.loaded = !!this.blog;
+      this.loaded = !!this.store;
     });
   }
 
